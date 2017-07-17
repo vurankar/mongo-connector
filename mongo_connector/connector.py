@@ -151,7 +151,8 @@ class Connector(threading.Thread):
             dest_mapping=kwargs.get('dest_mapping'),
             namespace_options=kwargs.get('namespace_options'),
             include_fields=kwargs.get('fields'),
-            exclude_fields=kwargs.get('exclude_fields')
+            exclude_fields=kwargs.get('exclude_fields'),
+            plugins=kwargs.get('plugins')
         )
 
         # Initialize and set the command helper
@@ -198,6 +199,7 @@ class Connector(threading.Thread):
         connector = Connector(
             mongo_address=config['mainAddress'],
             doc_managers=config['docManagers'],
+            plugins=config['plugins'],
             oplog_checkpoint=os.path.abspath(config['oplogFile']),
             collection_dump=(not config['noDump']),
             batch_size=config['batchSize'],
@@ -1094,6 +1096,65 @@ def get_config_options():
         " their own mechanism for adjusting a commit"
         " interval, which should be preferred to this"
         " option.")
+
+    def apply_plugins(option, cli_values):
+        if not option.value:
+            if not cli_values['plugin_name']:
+                return
+            option.value = [{}]
+
+        # Command line options should override the first Plugins config.
+        cli_to_config = dict(plugins='plugins',
+                             plugin_name='pluginName',
+                             module_name='moduleName',
+                             class_name='className')
+        first_plugin = option.value[0]
+        for cli_name, value in cli_values.items():
+            if value is not None:
+                first_plugin[cli_to_config[cli_name]] = value
+
+        # validate plugins and fill in default values
+        for plugin in option.value:
+            if not isinstance(plugin, dict):
+                raise errors.InvalidConfiguration(
+                    "Elements of plugins must be a dict.")
+            if 'pluginName' not in plugin:
+                raise errors.InvalidConfiguration(
+                    "Every element of plugins must contain a "
+                    "'pluginName' property.")
+            if not plugin.get('moduleName'):
+                plugin['moduleName'] = None
+            if not plugin.get('className'):
+                plugin['className'] = plugin['pluginName']
+
+    plugins = add_option(
+        config_key="plugins",
+        default=None,
+        type=list,
+        apply_function=apply_plugins)
+
+    # --plugins is to specify the plugins file.
+    plugins.add_cli(
+        "--plugin-name", dest="plugin_name", help=
+        "Used to specify the plugin name. "
+        "By default, Mongo Connector will use the "
+        "name to search for plugin classes.  "
+        "It is recommended that all plugin files "
+        "be kept in the plugins folder in "
+        "mongo-connector. For more information about "
+        "making your own plugin, see "
+        "'Writing Your Own Plugin' section of the wiki")
+
+    # --module is to specify the plugin module name.
+    plugins.add_cli(
+        "--module-name", dest="module_name", help=
+        "Used to specify the plugin module name. ")
+
+    # --class is to specify the plugin class name.
+    plugins.add_cli(
+        "--class-name", dest="class_name", help=
+        "The class name of the plugin to load from "
+        "the module. Defaults to the name of the plugin. ")
 
     continue_on_error = add_option(
         config_key="continueOnError",
