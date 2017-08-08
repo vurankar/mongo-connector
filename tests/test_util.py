@@ -23,7 +23,8 @@ sys.path[0:0] = [""]
 
 from mongo_connector.util import (bson_ts_to_long,
                                   long_to_bson_ts,
-                                  retry_until_ok)
+                                  retry_until_ok,
+                                  resolve_xpath)
 from tests import unittest
 
 
@@ -94,6 +95,27 @@ class TestUtil(unittest.TestCase):
             retry_until_ok(err_func, RuntimeError)
         self.assertEqual(err_func.counter, 1)
 
+    def test_resolve_xpath(self):
+        """Test resolve_xpath."""
+
+        doc = {"_id": "foo", "resourceId": "bar", "propertyId": 123.456,
+               "propertyName": "manufacturer",
+               "data": [{"eventId": 0, "value": "GE"},
+                        {"eventId": 1, "value": "PHILLIPS"}],
+               "options": {"flag": True},
+        }
+
+        self.assertEqual(resolve_xpath(doc, "/_id"), "foo")
+        self.assertEqual(resolve_xpath(doc, "/propertyId"), 123.456)
+        self.assertEqual(resolve_xpath(doc, "/data/0/value"), "GE")
+        self.assertEqual(resolve_xpath(doc, "/data/1/eventId"), 1)
+        self.assertEqual(resolve_xpath(doc, "/options/flag"), True)
+        self.assertEqual(resolve_xpath(doc, "/_wrong"), None)
+        self.assertEqual(resolve_xpath(doc, "/propertyId/_wrong/_wronger"), None)
+        self.assertEqual(resolve_xpath(doc, "/data/99"), None)
+        self.assertEqual(resolve_xpath(doc, "/data/options"), None)
+        self.assertEqual(resolve_xpath(doc, "/data/99/options"), None)
+        self.assertEqual(resolve_xpath(doc, "/data/99/options/flag"), None)
 
 if __name__ == '__main__':
 

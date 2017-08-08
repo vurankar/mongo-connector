@@ -106,3 +106,21 @@ def log_fatal_exceptions(func):
             LOG.exception("Fatal Exception")
             raise
     return wrapped
+
+
+def resolve_xpath(d, xp):
+    """Resolves XPath 'xp' in dictionary 'd' and return the value."""
+    value = d
+    try:
+        # Strip the leading /.
+        xp = xp.strip("/")
+        for k in xp.split("/"):
+            try:
+                idx = int(k)
+                value = value[idx]
+            except ValueError:
+                value = value.get(k)
+    except:
+        value = None
+        pass
+    return value

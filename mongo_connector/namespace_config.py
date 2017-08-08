@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import copy
 import logging
 import re
 
@@ -20,29 +21,33 @@ from itertools import combinations
 
 from mongo_connector import errors
 from mongo_connector import compat
+import mongo_connector.plugin_manager as PluginManager
 
 
 LOG = logging.getLogger(__name__)
+LOG.setLevel(logging.DEBUG)
 
 
 _Namespace = namedtuple('Namespace', ['dest_name', 'source_name', 'gridfs',
-                                      'include_fields', 'exclude_fields'])
+                                      'include_fields', 'exclude_fields',
+                                      'plugins'])
 
 
 class Namespace(_Namespace):
     def __new__(cls, dest_name=None, source_name=None, gridfs=False,
-                include_fields=None, exclude_fields=None):
+                include_fields=None, exclude_fields=None, plugins=None):
         include_fields = set(include_fields or [])
         exclude_fields = set(exclude_fields or [])
+        plugins = plugins or []
         return super(Namespace, cls).__new__(
             cls, dest_name, source_name, gridfs, include_fields,
-            exclude_fields)
+            exclude_fields, plugins)
 
     def with_options(self, **kwargs):
         new_options = dict(
             dest_name=self.dest_name, source_name=self.source_name,
             gridfs=self.gridfs, include_fields=self.include_fields,
-            exclude_fields=self.exclude_fields)
+            exclude_fields=self.exclude_fields, plugins=self.plugins)
         new_options.update(kwargs)
         return Namespace(**new_options)
 
@@ -105,7 +110,7 @@ class NamespaceConfig(object):
     """
     def __init__(self, namespace_set=None, ex_namespace_set=None,
                  gridfs_set=None, dest_mapping=None, namespace_options=None,
-                 include_fields=None, exclude_fields=None):
+                 include_fields=None, exclude_fields=None, plugins=None):
         # A mapping from non-wildcard source namespaces to a MappedNamespace
         # containing the non-wildcard target name.
         self._plain = {}
@@ -128,6 +133,9 @@ class NamespaceConfig(object):
         self._include_fields = validate_include_fields(include_fields)
         self._exclude_fields = validate_exclude_fields(exclude_fields)
 
+        # Any custom connector plugins.
+        self._plugins = validate_plugins(plugins)
+
         # Add each included namespace. Namespaces have a one-to-one
         # relationship to the target system, meaning multiple source
         # namespaces cannot be merged into a single namespace in the target.
@@ -138,7 +146,8 @@ class NamespaceConfig(object):
             dest_mapping=dest_mapping,
             namespace_options=namespace_options,
             include_fields=include_fields,
-            exclude_fields=exclude_fields)
+            exclude_fields=exclude_fields,
+            plugins=plugins)
 
         # The set of, possibly wildcard, namespaces to exclude.
         self._ex_namespace_set = RegexSet.from_namespaces(ex_namespace_set)
@@ -195,7 +204,8 @@ class NamespaceConfig(object):
         if not self._regex_map and not self._plain:
             return Namespace(dest_name=plain_src_ns, source_name=plain_src_ns,
                              include_fields=self._include_fields,
-                             exclude_fields=self._exclude_fields)
+                             exclude_fields=self._exclude_fields,
+                             plugins=self._plugins)
         # First, search for the namespace in the plain namespaces.
         try:
             return self._plain[plain_src_ns]
@@ -217,6 +227,12 @@ class NamespaceConfig(object):
         # that future lookups of the same namespace are fast.
         self._ex_namespace_set.add(plain_src_ns)
         return None
+
+    def get_plugin_configs(self, plain_src_ns):
+        """Returns the config for any plugins in the namespace.
+        """
+        namespace = self.lookup(plain_src_ns)
+        return PluginManager.get_plugin_configs(namespace)
 
     def map_namespace(self, plain_src_ns):
         """Given a plain source namespace, return the corresponding plain
@@ -391,7 +407,8 @@ def _validate_namespaces(namespaces):
 def _merge_namespace_options(namespace_set=None, ex_namespace_set=None,
                              gridfs_set=None, dest_mapping=None,
                              namespace_options=None,
-                             include_fields=None, exclude_fields=None):
+                             include_fields=None, exclude_fields=None,
+                             plugins=None):
     """Merges namespaces options together.
 
     The first is the set of excluded namespaces and the second is a mapping
@@ -404,6 +421,7 @@ def _merge_namespace_options(namespace_set=None, ex_namespace_set=None,
     namespace_options = namespace_options or {}
     include_fields = set(include_fields or [])
     exclude_fields = set(exclude_fields or [])
+    plugins = plugins or []
     namespaces = {}
 
     for source_name, options_or_str in namespace_options.items():
@@ -415,6 +433,7 @@ def _merge_namespace_options(namespace_set=None, ex_namespace_set=None,
                 dest_name=options_or_str.get('rename'),
                 include_fields=options_or_str.get('includeFields'),
                 exclude_fields=options_or_str.get('excludeFields'),
+                plugins=options_or_str.get('plugins'),
                 gridfs=options_or_str.get('gridfs', False))
         elif compat.is_string(options_or_str):
             namespace_set.add(source_name)
@@ -447,7 +466,8 @@ def _merge_namespace_options(namespace_set=None, ex_namespace_set=None,
             include_fields=validate_include_fields(include_fields,
                                                    namespace.include_fields),
             exclude_fields=validate_exclude_fields(exclude_fields,
-                                                   namespace.exclude_fields))
+                                                   namespace.exclude_fields),
+            plugins=validate_plugins(plugins, namespace.plugins))
         # The default destination name is the same as the source.
         if not namespace.dest_name:
             namespace = namespace.with_options(dest_name=included_name)
@@ -459,7 +479,8 @@ def _merge_namespace_options(namespace_set=None, ex_namespace_set=None,
 def validate_namespace_options(namespace_set=None, ex_namespace_set=None,
                                gridfs_set=None, dest_mapping=None,
                                namespace_options=None,
-                               include_fields=None, exclude_fields=None):
+                               include_fields=None, exclude_fields=None,
+                               plugins=None):
     ex_namespace_set, namespaces = _merge_namespace_options(
         namespace_set=namespace_set,
         ex_namespace_set=ex_namespace_set,
@@ -467,7 +488,8 @@ def validate_namespace_options(namespace_set=None, ex_namespace_set=None,
         dest_mapping=dest_mapping,
         namespace_options=namespace_options,
         include_fields=include_fields,
-        exclude_fields=exclude_fields)
+        exclude_fields=exclude_fields,
+        plugins=plugins)
 
     for excluded_name in ex_namespace_set:
         _validate_namespace(excluded_name)
@@ -532,3 +554,33 @@ def validate_exclude_fields(exclude_fields, namespace_fields=None):
         LOG.warning("Cannot exclude '_id' field, ignoring")
         merged.discard('_id')
     return merged
+
+
+def validate_plugins(plugins, namespace_plugins=None):
+    plugins = plugins or []
+    namespace_plugins = namespace_plugins or []
+
+    valid_plugins = []
+    for cfg in plugins:
+        if 'pluginName' not in cfg:
+            LOG.warning("No pluginName was specified, ignoring")
+            continue
+
+        plugin_name = cfg['pluginName']
+        merged_plugin_config = copy.deepcopy(cfg)
+
+        for nsp in namespace_plugins:
+            LOG.debug("checking nsp plugin %r ... ", nsp)
+            if 'pluginName' in nsp and plugin_name == nsp['pluginName']:
+                merged_plugin_config.update(nsp)
+                LOG.debug("merged plugin config updated to %r",
+                    merged_plugin_config.update)
+
+        if len(PluginManager.resolve(merged_plugin_config)) == 0:
+            LOG.warning("Unresolved plugin '%s', ignoring", plugin_name)
+            continue
+
+        valid_plugins.append(merged_plugin_config)
+
+    LOG.debug('validate_plugins returning %r', valid_plugins)
+    return valid_plugins

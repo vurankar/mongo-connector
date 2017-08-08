@@ -33,6 +33,7 @@ from mongo_connector import errors, util
 from mongo_connector.constants import DEFAULT_BATCH_SIZE
 from mongo_connector.gridfs_file import GridFSFile
 from mongo_connector.util import log_fatal_exceptions, retry_until_ok
+import mongo_connector.plugin_manager as PluginManager
 
 LOG = logging.getLogger(__name__)
 
@@ -238,11 +239,23 @@ class OplogThread(threading.Thread):
                         # Sync the current oplog operation
                         operation = entry['op']
                         ns = entry['ns']
+                        configs = self.namespace_config.get_plugin_configs(ns)
+                        plugins = PluginManager.resolve(configs)
+                        passthru_op = PluginManager.docs_index_needed(configs)
                         timestamp = util.bson_ts_to_long(entry['ts'])
                         for docman in self.doc_managers:
                             try:
                                 LOG.debug("OplogThread: Operation for this "
                                           "entry is %s" % str(operation))
+
+                                if len(configs) > 0 and len(plugins) > 0:
+                                    LOG.debug("OplogThread: invoking "
+                                              "plugins for op %s entry %r",
+                                              operation, entry['o'])
+                                    self.invoke_plugins_for_doc(operation,
+                                        entry['o'], plugins, docman)
+                                    if not passthru_op:
+                                        continue
 
                                 # Remove
                                 if operation == 'd':
@@ -485,6 +498,24 @@ class OplogThread(threading.Thread):
         database, coll = namespace.split('.', 1)
         return self.primary_client[database][coll]
 
+    def invoke_plugins_for_doc(self, operation, doc, plugins, dm):
+        """Invoke all the plugins on a document event/operation.
+        """
+        failures = 0
+        for plugin in plugins:
+            try:
+                LOG.debug('plugin invoke with %r', plugin)
+                if plugin.invoke(operation, doc, dm) is None:
+                    failures += 1
+            except Exception:
+                if self.continue_on_error:
+                    LOG.exception("Could not invoke plugin %s on doc: %r" %
+                                  (plugin.name(), doc))
+                    failures += 1
+                else:
+                    raise
+        return failures
+
     def dump_collection(self):
         """Dumps collection into the target system.
 
@@ -569,9 +600,57 @@ class OplogThread(threading.Thread):
                     attempts += 1
                     time.sleep(1)
 
+        def invoke_namespace_plugins(namespace, dm):
+            num_failed = 0
+            from_coll = self.get_collection(namespace)
+            mapped_ns = self.namespace_config.map_namespace(namespace)
+            total_docs = retry_until_ok(from_coll.count)
+            num = None
+            plugin_configs = self.namespace_config.get_plugin_configs(namespace)
+            plugins = PluginManager.resolve(plugin_configs)
+
+
+            # In order to update indexes, the inserts/prior updates need to
+            # be flushed out. Commit pending ops before invoking plugins.
+            dm.commit()
+
+            for num, doc in enumerate(docs_to_dump(from_coll)):
+                nperrs = self.invoke_plugins_for_doc('u', doc,plugins, dm)
+                if nperrs > 0:
+                    num_failed += 1
+
+                if num % 10000 == 0:
+                    LOG.info("Plugins invoked on %d out of approximately "
+                             "%d docs from collection '%s'", num + 1,
+                             total_docs, namespace)
+
+            if num_failed > 0:
+                LOG.error("Failed invoking plugins on %d docs", num_failed)
+
+            if num is not None:
+                LOG.info("Plugins invoked on %d out of approximately %d "
+                         "docs from collection '%s'", num + 1, total_docs,
+                         namespace)
+
+        def invoke_plugins(plugin_namespaces, dm):
+            for namespace in plugin_namespaces:
+                invoke_namespace_plugins(namespace, dm)
+
         def upsert_each(dm):
             num_failed = 0
+            namespaces_with_plugins = []
+
             for namespace in dump_set:
+                LOG.debug("Checking if namespace %s has plugins",
+                    namespace)
+                configs = self.namespace_config.get_plugin_configs(namespace)
+                if len(configs) > 0:
+                    LOG.info("Adding namespace %s to ones with plugins",
+                        namespace)
+                    namespaces_with_plugins.append(namespace)
+                    if not PluginManager.docs_index_needed(configs):
+                        continue
+
                 from_coll = self.get_collection(namespace)
                 mapped_ns = self.namespace_config.map_namespace(namespace)
                 total_docs = retry_until_ok(from_coll.count)
@@ -594,12 +673,26 @@ class OplogThread(threading.Thread):
                     LOG.info("Upserted %d out of approximately %d docs from "
                              "collection '%s'",
                              num + 1, total_docs, namespace)
+
+            invoke_plugins(namespaces_with_plugins, dm)
+
             if num_failed > 0:
                 LOG.error("Failed to upsert %d docs" % num_failed)
 
         def upsert_all(dm):
+            namespaces_with_plugins = []
             try:
                 for namespace in dump_set:
+                    LOG.debug("Checking if namespace %s has any plugins",
+                        namespace)
+                    configs = self.namespace_config.get_plugin_configs(namespace)
+                    if len(configs) > 0:
+                        LOG.info("Adding %s to namespaces with plugins",
+                            namespace)
+                        namespaces_with_plugins.append(namespace)
+                        if not PluginManager.docs_index_needed(configs):
+                            continue
+
                     from_coll = self.get_collection(namespace)
                     total_docs = retry_until_ok(from_coll.count)
                     mapped_ns = self.namespace_config.map_namespace(
@@ -609,6 +702,9 @@ class OplogThread(threading.Thread):
                              total_docs, namespace)
                     dm.bulk_upsert(docs_to_dump(from_coll),
                                    mapped_ns, long_ts)
+
+                invoke_plugins(namespaces_with_plugins, dm)
+
             except Exception:
                 if self.continue_on_error:
                     LOG.exception("OplogThread: caught exception"
