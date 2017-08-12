@@ -114,8 +114,13 @@ extra_opts['cmdclass'] = {
     "uninstall_service": UninstallService
 }
 
+build = 0
+
+if os.path.exists(__path('build.info')):
+    build = open(__path('build.info')).read().strip()
+
 setup(name='mongo-connector',
-      version="2.5.2.dev0",
+      version='{}.{}'.format("2.5.2.riffyn", build),
       author="MongoDB, Inc.",
       author_email='mongodb-user@googlegroups.com',
       description='Mongo Connector',
