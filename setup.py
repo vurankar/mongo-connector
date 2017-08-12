@@ -116,6 +116,9 @@ extra_opts['cmdclass'] = {
 
 build = 0
 
+def __path(filename):
+    return os.path.join(os.path.dirname(__file__),filename)
+
 if os.path.exists(__path('build.info')):
     build = open(__path('build.info')).read().strip()
 
