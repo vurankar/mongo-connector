@@ -133,9 +133,11 @@ setup(name='mongo-connector',
       platforms=["any"],
       classifiers=filter(None, classifiers.split("\n")),
       install_requires=['pymongo >= 2.9'],
-      packages=["mongo_connector", "mongo_connector.doc_managers"],
+      packages=["mongo_connector", "mongo_connector.doc_managers",
+                "mongo_connector.plugins"],
       package_data={
-          'mongo_connector.doc_managers': ['schema.xml']
+          'mongo_connector.doc_managers': ['schema.xml'],
+          'mongo_connector.plugins': ['schema.xml']
       },
       entry_points={
           'console_scripts': [
