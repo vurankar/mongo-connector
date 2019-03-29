@@ -230,6 +230,10 @@ class UpdateElasticsearchIndex(PluginBase):
         timestamp = time.time()
 
         if criteria is None or update_spec is None:
+            LOG.debug('UpdateElasticsearchIndex.invoke: criteria = %s, '
+                      'update_spec = %r, index_name = %s',
+                      criteria, update_spec, index_name)
+
             LOG.info('UpdateElasticsearchIndex.invoke: no criteria '
                       'or update spec for %s operation', operation)
             return None
