@@ -609,15 +609,6 @@ class OplogThread(threading.Thread):
                              total_docs, namespace)
 
                     docs = docs_to_dump(from_coll)
-                    # for doc in docs:
-                    #     if namespace == 'unity.resources':
-                    #         doc['data_join'] = '_id'
-                    #     elif namespace == 'unity.runData':
-                    #         doc['data_join'] = {
-                    #             "name": "resourceId",
-                    #             "parent": doc['resourceId']
-                    #         }
-
                     dm.bulk_upsert(docs,
                                    mapped_ns, long_ts)
             except Exception:

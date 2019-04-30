@@ -179,7 +179,8 @@ class NamespaceConfig(object):
         target_name = namespace.dest_name
         src_names = self._reverse_plain.setdefault(target_name, set())
         src_names.add(src_name)
-        # TODO: Remove this if this approach works for combining entities
+
+        # Override to allow adding multiple collections to the same index
         # if len(src_names) > 1:
         #     # Another source namespace is already mapped to this target
         #     existing_src = (src_names - set([src_name])).pop()
@@ -391,7 +392,7 @@ def _validate_namespaces(namespaces):
                         'same source namespace.', source1, source2)
         target1 = namespaces[source1].dest_name
         target2 = namespaces[source2].dest_name
-        # TODO: Potentially remove
+        # # Override to allow adding multiple collections to the same index
         # if target1 == target2:
         #     raise errors.InvalidConfiguration(
         #         "Multiple namespaces cannot be combined into one target "

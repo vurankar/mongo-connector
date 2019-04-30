@@ -36,7 +36,7 @@ mc="/usr/bin/python -m mongo_connector.connector \
     -c $config >/dev/null 2> $error & \
     echo "'$!'" > $pidfile"
 
-start()pip
+start()
 {
     echo "starting mongo-connector "
     if [ "$DEBIAN" ]; then
