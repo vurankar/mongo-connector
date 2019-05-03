@@ -4,7 +4,7 @@ PROG=$0
 # expect these parameters to be set prior to running the script
 # ELASTIC_HOST="elasticsearch"
 # ELASTIC_PORT="9200"
-CONFIG_DIR="../config"
+CONFIG_DIR="config"
 FORCE=0
 
 function usage {
