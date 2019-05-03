@@ -1,0 +1,197 @@
+{
+    "dynamic": false,
+    "properties": {
+        "typeId": {
+            "type": "text"
+        },
+        "activityId": {
+            "type": "text"
+        },
+        "experimentId": {
+            "type": "text"
+        },
+        "activityName": {
+            "type": "text",
+            "fields": {
+                "exact": {
+                    "type": "keyword"
+                }
+            }
+        },
+        "experimentName": {
+            "type": "text",
+            "fields": {
+                "exact": {
+                    "type": "keyword"
+                }
+            }
+        },
+        "runId": {
+            "type": "text"
+        },
+        "runGroupId": {
+            "type": "text"
+        },
+        "resourceId": {
+            "type": "text",
+            "fields": {
+                "nostem": {
+                    "type": "text",
+                    "analyzer": "nonword",
+                    "index_options": "docs"
+                },
+                "ngram_run_data": {
+                    "type": "text",
+                    "analyzer": "entity_name",
+                    "index_options": "docs"
+                }
+            }
+        },
+        "resourceName": {
+            "type": "text",
+            "index": true
+        },
+        "propertyName": {
+            "type": "text",
+            "index": true,
+            "fields": {
+                "exact": {
+                    "type": "keyword"
+                }
+            }
+        },
+        "data_join": {
+            "type": "join",
+            "relations": {
+                "_id": "resourceId"
+            }
+        },
+        "resourceDefId": {
+            "type": "text"
+        },
+        "componentId": {
+            "type": "text"
+        },
+        "propertyId": {
+            "type": "text"
+        },
+        "valueType": {
+            "type": "text"
+        },
+        "accessibleTo": {
+            "properties": {
+                "_id": {
+                    "type": "keyword",
+                    "index": true
+                }
+            }
+        },
+        "public": {
+            "type": "boolean"
+        },
+        "created": {
+            "type": "date",
+            "index": true
+        },
+        "modified": {
+            "type": "date",
+            "index": true
+        },
+        "deleted": {
+            "type": "boolean",
+            "index": true
+        },
+        "assigned": {
+            "type": "date"
+        },
+        "unitId": {
+            "type": "text",
+            "store": true
+        },
+        "unitName": {
+            "type": "text",
+            "store": true
+        },
+        "unitSymbol": {
+            "type": "text",
+            "store": true
+        },
+        "data": {
+            "properties": {
+                "value": {
+                    "type": "text",
+                    "store": true,
+                    "fields": {
+                        "exact": {
+                            "type": "keyword"
+                        },
+                        "integer": {
+                            "type": "long",
+                            "coerce": true,
+                            "ignore_malformed": true
+                        },
+                        "double_float": {
+                            "type": "double",
+                            "ignore_malformed": true
+                        },
+                        "date": {
+                            "type": "date",
+                            "ignore_malformed": true
+                        }
+                    }
+                },
+                "readValue": {
+                    "type": "text",
+                    "store": true
+                },
+                "eventId": {
+                    "type": "integer",
+                    "store": true
+                }
+            }
+        },
+        "name": {
+            "type": "text",
+            "fields": {
+                "exact": {
+                    "type": "keyword"
+                },
+                "nostem": {
+                    "type": "text",
+                    "analyzer": "nonword",
+                    "index_options": "docs"
+                },
+                "ngram_resource": {
+                    "type": "text",
+                    "analyzer": "entity_name",
+                    "index_options": "docs"
+                },
+                "edge_ngram_resource": {
+                    "type": "text",
+                    "analyzer": "autocomplete1",
+                    "index_options": "docs"
+                }
+            }
+        },
+        "label": {
+            "type": "text",
+            "fields": {
+                "nostem": {
+                    "type": "text",
+                    "analyzer": "nonword",
+                    "index_options": "docs"
+                },
+                "ngram_resource": {
+                    "type": "text",
+                    "analyzer": "entity_name",
+                    "index_options": "docs"
+                },
+                "edge_ngram_resource": {
+                    "type": "text",
+                    "analyzer": "autocomplete1",
+                    "index_options": "docs"
+                }
+            }
+        }
+    }
+}
