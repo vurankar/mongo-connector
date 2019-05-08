@@ -1,0 +1,70 @@
+{
+    "continueOnError": true,
+    "verbosity": 2,
+    "namespaces": {
+        "unity.resources": {
+            "rename": "resources_and_run_data.resources_and_run_data",
+            "includeFields": [
+                "_id",
+                "typeId",
+                "experimentId",
+                "activityId",
+                "activityName",
+                "experimentName",
+                "topGroupName",
+                "runId",
+                "runLabel",
+                "runGroupId",
+                "resourceDefId",
+                "name",
+                "description",
+                "label",
+                "source",
+                "created",
+                "modified",
+                "accessibleTo",
+                "public",
+                "deleted"
+            ]
+        },
+        "unity.runData": {
+            "rename": "resources_and_run_data.resources_and_run_data",
+            "includeFields": [
+                "_id",
+                "data",
+                "immutable",
+                "resourceId",
+                "resourceName",
+                "propertyId",
+                "propertyName",
+                "unitId",
+                "unitName",
+                "unitSymbol",
+                "created",
+                "modified"
+            ]
+        }
+    },
+    "docManagers": [
+        {
+            "docManager": "elastic2_doc_manager",
+            "targetURL": "elastic:9200",
+            "bulkSize": 10000,
+            "autoCommitInterval": 1,
+            "args": {
+                "clientOptions": {
+                    "timeout": 100,
+                    "sniffer_timeout": 60,
+                    "sniff_on_start": true,
+                    "sniff_on_connection_fail": true
+                }
+            }
+        }
+    ],
+    "plugins": [
+        {
+            "pluginName": "UpdateElasticsearchIndex",
+            "moduleName": "mongo_connector.plugins.update_elasticsearch_index"
+        }
+    ]
+}

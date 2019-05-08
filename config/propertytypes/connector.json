@@ -1,0 +1,43 @@
+{
+    "continueOnError": true,
+    "verbosity": 2,
+    "namespaces": {
+        "unity.propertyTypes": {
+            "rename": "property_types.propertyTypes",
+            "includeFields": [
+                "_id",
+                "immutable",
+                "name",
+                "definition",
+                "synonyms",
+                "source",
+                "created",
+                "accessibleTo",
+                "public",
+                "deleted"
+            ]
+        }
+    },
+    "docManagers": [
+        {
+            "docManager": "elastic2_doc_manager",
+            "targetURL": "elastic:9200",
+            "bulkSize": 10000,
+            "autoCommitInterval": 1,
+            "args": {
+                "clientOptions": {
+                    "timeout": 100,
+                    "sniffer_timeout": 60,
+                    "sniff_on_start": true,
+                    "sniff_on_connection_fail": true
+                }
+            }
+        }
+    ],
+    "plugins": [
+        {
+            "pluginName": "UpdateElasticsearchIndex",
+            "moduleName": "mongo_connector.plugins.update_elasticsearch_index"
+        }
+    ]
+}
