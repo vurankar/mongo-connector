@@ -77,7 +77,7 @@
     "docManagers": [
         {
             "docManager": "elastic2_doc_manager",
-            "targetURL": "elastic:9200",
+            "targetURL": "elastic-elasticsearch-client:9200",
             "bulkSize": 10000,
             "autoCommitInterval": 1,
             "args": {
