@@ -7,6 +7,21 @@ PROG=$0
 CONFIG_DIR="config"
 FORCE=0
 
+declare -A INDEX_TO_COLLECTION_MAP=( ["resource_types"]="resourceTypes"
+                     ["property_types"]="propertyTypes"
+                     ["resources_and_run_data"]="resources_and_run_data"
+
+                    )
+
+# expect INDEX_LIST environment variable to provide the list of ES indexes this instance of mongo-connector
+# should work for. Expect a single index name or a comma separated list
+INDEX_LIST=${INDEX_LIST:-""}
+
+echo "setting mongo-connector for indices ${INDEX_LIST}"
+
+# copy the indices into an array
+IFS=',' read -r -a INDEX_ARRAY <<< "$INDEX_LIST"
+
 function usage {
     echo "usage: $PROG [-f] [-h]"
     echo
@@ -59,22 +74,22 @@ fi
 ##
 ##  DELETE/RECREATE/RECONFIGURE INDEXES AND MAPPINGS
 ##
-echo "DELETING RESOURCES+RUNDATA INDEX"
-curl -XDELETE "$ELASTIC_HOST:$ELASTIC_PORT/resources_and_run_data" -H 'Content-Type: application/json'
-echo
-echo "DELETING RESOURCETYPES INDEX"
-curl -XDELETE "$ELASTIC_HOST:$ELASTIC_PORT/resource_types" -H 'Content-Type: application/json'
-echo
-echo "DELETING PROPERTYTYPES INDEX"
-curl -XDELETE "$ELASTIC_HOST:$ELASTIC_PORT/property_types" -H 'Content-Type: application/json'
-echo
+
+for index in "${INDEX_ARRAY[@]}"
+do
+    echo "DELETING  $index INDEX"
+    curl -XDELETE "$ELASTIC_HOST:$ELASTIC_PORT/$index" -H 'Content-Type: application/json'
+    echo
+done
+
+
 echo "DELETING MONGODB METADATA"
 curl -XDELETE "$ELASTIC_HOST:$ELASTIC_PORT/mongodb_meta" -H 'Content-Type: application/json'
 echo
 
 echo
 echo "SETTING UP ELASTICSEARCH INDEXES"
-while curl -XGET "$ELASTIC_HOST:$ELASTIC_PORT/resources_and_run_data,resource_types,property_types,mongodb_meta" | grep '"status" : 200'; do
+while curl -XGET "$ELASTIC_HOST:$ELASTIC_PORT/$INDEX_LIST,mongodb_meta" | grep '"status" : 200'; do
     sleep 1
     echo "Waiting for indiciess to be removed…"
 done
@@ -87,20 +102,22 @@ echo
 ##  NOTE: THE FILE settings.json LIMITS TO 1 SHARD AND NO REPLICAS
 curl -XPUT "$ELASTIC_HOST:$ELASTIC_PORT/mongodb_meta" -H 'Content-Type: application/json'
 echo
-curl -XPUT "$ELASTIC_HOST:$ELASTIC_PORT/resources_and_run_data/?format=yaml" -H 'Content-Type: application/json' -d @$CONFIG_DIR/settings.json
-echo
-curl -XPUT "$ELASTIC_HOST:$ELASTIC_PORT/resource_types/?format=yaml" -H 'Content-Type: application/json' -d @$CONFIG_DIR/settings.json
-echo
-curl -XPUT "$ELASTIC_HOST:$ELASTIC_PORT/property_types/?format=yaml" -H 'Content-Type: application/json' -d @$CONFIG_DIR/settings.json
-echo
-echo "ADDING RESOURCES+RUNDATA DOC TYPE MAPPING"
-curl -XPUT "$ELASTIC_HOST:$ELASTIC_PORT/resources_and_run_data/_mapping/resources_and_run_data?format=yaml" -H 'Content-Type: application/json' -d @$CONFIG_DIR/mapping_resources_and_run_data.json
-echo
-echo "ADDING RESOURCETYPES DOC TYPE MAPPING"
-curl -XPUT "$ELASTIC_HOST:$ELASTIC_PORT/resource_types/_mapping/resourceTypes?format=yaml" -H 'Content-Type: application/json' -d @$CONFIG_DIR/mapping_resourcetypes.json
-echo
-echo "ADDING PROPERTYTYPES DOC TYPE MAPPING"
-curl -XPUT "$ELASTIC_HOST:$ELASTIC_PORT/property_types/_mapping/propertyTypes?format=yaml" -H 'Content-Type: application/json' -d @$CONFIG_DIR/mapping_propertytypes.json
+
+for index in "${INDEX_ARRAY[@]}"
+do
+    curl -XPUT "$ELASTIC_HOST:$ELASTIC_PORT/$index/?format=yaml" -H 'Content-Type: application/json' -d @$CONFIG_DIR/settings.json
+    echo
+done
+
+
+for index in "${INDEX_ARRAY[@]}"
+do
+    curl -XPUT "$ELASTIC_HOST:$ELASTIC_PORT/$index/?format=yaml" -H 'Content-Type: application/json' -d @$CONFIG_DIR/settings.json
+    echo
+    echo "ADDING $INDEX_TO_COLLECTION_MAP[$index] DOC TYPE MAPPING"
+    curl -XPUT "$ELASTIC_HOST:$ELASTIC_PORT/$index/_mapping/$INDEX_TO_COLLECTION_MAP[$index]?format=yaml" -H 'Content-Type: application/json' -d @$CONFIG_DIR/mapping_$index.json
+    echo
+done
 
 echo
 echo "FINISHED"
