@@ -2,46 +2,18 @@
     "continueOnError": true,
     "verbosity": 2,
     "namespaces": {
-        "unity.resources": {
-            "rename": "resources_and_run_data.resources_and_run_data",
+        "unity.resourceTypes": {
+            "rename": "resource_types.resourceTypes",
             "includeFields": [
                 "_id",
-                "typeId",
-                "experimentId",
-                "activityId",
-                "activityName",
-                "experimentName",
-                "topGroupName",
-                "runId",
-                "runLabel",
-                "runGroupId",
-                "resourceDefId",
                 "name",
-                "description",
-                "label",
+                "definition",
+                "synonyms",
                 "source",
                 "created",
-                "modified",
                 "accessibleTo",
                 "public",
                 "deleted"
-            ]
-        },
-        "unity.runData": {
-            "rename": "resources_and_run_data.resources_and_run_data",
-            "includeFields": [
-                "_id",
-                "data",
-                "immutable",
-                "resourceId",
-                "resourceName",
-                "propertyId",
-                "propertyName",
-                "unitId",
-                "unitName",
-                "unitSymbol",
-                "created",
-                "modified"
             ]
         }
     },
