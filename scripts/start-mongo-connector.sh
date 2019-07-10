@@ -16,6 +16,6 @@ for index in "${INDEX_ARRAY[@]}"
 do
     # $MONGO_HOSTS should be in format HOSTNAME:PORT
     # example mongodb01:27017,mongodb02:27017,mongodb03:27017
-    mongo-connector --auto-commit-interval=0 -m $MONGO_HOSTS -c config/$index.json --stdout
+    mongo-connector --auto-commit-interval=0 -m $MONGO_HOSTS -c config/connector_$index.json --stdout
     sleep 1
 done
