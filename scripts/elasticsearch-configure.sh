@@ -15,6 +15,7 @@ declare -A INDEX_TO_COLLECTION_MAP=( ["resource_types"]="resourceTypes"
 
 # expect INDEX_LIST environment variable to provide the list of ES indexes this instance of mongo-connector
 # should work for. Expect a single index name or a comma separated list
+# Eg: "resource_types"  or "resource_types,property_types,resources_and_run_data"
 INDEX_LIST=${INDEX_LIST:-""}
 
 echo "setting mongo-connector for indices ${INDEX_LIST}"
