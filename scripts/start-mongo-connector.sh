@@ -1,6 +1,13 @@
 #!/bin/bash
-bash elasticsearch-configure.sh -f
 
+SKIP_INDEX_RESET=${SKIP_INDEX_RESET:-0}
+
+if [ $SKIP_INDEX_RESET -eq 1 ]
+then
+    bash elasticsearch-configure.sh -f
+else
+    echo "skipping elastic search configure because SKIP_INDEX_RESET is set to $SKIP_INDEX_RESET"
+fi
 
 # expect INDEX_LIST environment variable to provide the list of ES indexes this instance of mongo-connector
 # should work for. Expect a single index name or a comma separated list
