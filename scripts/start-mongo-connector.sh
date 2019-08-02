@@ -1,7 +1,7 @@
 #!/bin/bash
 
 SKIP_INDEX_RESET=${SKIP_INDEX_RESET:-0}
-
+#SKIP_INDEX_RESET  : 0: skip and 1: do not skip
 if [ $SKIP_INDEX_RESET -eq 1 ]
 then
     bash elasticsearch-configure.sh -f
@@ -27,3 +27,6 @@ do
     mongo-connector --auto-commit-interval=0 -m $MONGO_HOSTS -c config/connector_$index.json -t $ELASTIC_HOST:$ELASTIC_PORT --stdout
     sleep 1
 done
+
+#deep sleep so that we get a change to exec into the container
+sleep 100000
