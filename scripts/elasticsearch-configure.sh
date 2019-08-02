@@ -84,9 +84,9 @@ do
 done
 
 
-echo "DELETING MONGODB METADATA"
-curl -XDELETE "$ELASTIC_HOST:$ELASTIC_PORT/mongodb_meta" -H 'Content-Type: application/json'
-echo
+#echo "DELETING MONGODB METADATA"
+#curl -XDELETE "$ELASTIC_HOST:$ELASTIC_PORT/mongodb_meta" -H 'Content-Type: application/json'
+#echo
 
 echo
 echo "SETTING UP ELASTICSEARCH INDEXES"
@@ -113,7 +113,7 @@ done
 
 for index in "${INDEX_ARRAY[@]}"
 do
-    curl -XPUT "$ELASTIC_HOST:$ELASTIC_PORT/$index/?format=yaml" -H 'Content-Type: application/json' -d @$CONFIG_DIR/settings.json
+    #curl -XPUT "$ELASTIC_HOST:$ELASTIC_PORT/$index/?format=yaml" -H 'Content-Type: application/json' -d @$CONFIG_DIR/settings.json
     echo
     echo "ADDING $INDEX_TO_COLLECTION_MAP[$index] DOC TYPE MAPPING"
     curl -XPUT "$ELASTIC_HOST:$ELASTIC_PORT/$index/_mapping/$INDEX_TO_COLLECTION_MAP[$index]?format=yaml" -H 'Content-Type: application/json' -d @$CONFIG_DIR/mapping_$index.json
