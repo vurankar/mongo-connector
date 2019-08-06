@@ -7,21 +7,37 @@ PROG=$0
 CONFIG_DIR="config"
 FORCE=0
 
+# K8s deployment name follows pattern mongo-connector-indexname
+# K8s does not allow _ or uppercase letters in artifact names. So we need to pass
+# K8s friendly names to identify index names. This map converts input values to
+# actual index names
+declare -A INDEX_NAME_MAP=( ["resourcetypes"]="resource_types"
+                     ["propertytypes"]="property_types"
+                     ["resourcesandrun_data"]="resources_and_run_data"
+
+                    )
+
 declare -A INDEX_TO_COLLECTION_MAP=( ["resource_types"]="resourceTypes"
                      ["property_types"]="propertyTypes"
                      ["resources_and_run_data"]="resources_and_run_data"
 
                     )
 
-# expect INDEX_LIST environment variable to provide the list of ES indexes this instance of mongo-connector
-# should work for. Expect a single index name or a comma separated list
-# Eg: "resource_types"  or "resource_types,property_types,resources_and_run_data"
-INDEX_LIST=${INDEX_LIST:-""}
+echo "Executing elasticsearch-configure.sh ......"
+echo " value of INDEX_NAME: ${INDEX_NAME}"
+echo " value of ELASTIC_HOST: ${ELASTIC_HOST}"
+echo " value of ELASTIC_PORT: ${ELASTIC_PORT}"
+echo " value of INDEX_NAME: ${INDEX_NAME}"
 
-echo "setting mongo-connector for indices ${INDEX_LIST}"
 
-# copy the indices into an array
-IFS=',' read -r -a INDEX_ARRAY <<< "$INDEX_LIST"
+INDEX_NAME=${INDEX_NAME:-""}
+
+# convert input K8 friendly index name to actual index name
+# Eg: resourcetypes -> resource_types
+INDEX_NAME=INDEX_NAME_MAP[$INDEX_NAME]
+
+echo "setting mongo-connector for index ${INDEX_NAME}"
+
 
 function usage {
     echo "usage: $PROG [-f] [-h]"
@@ -76,12 +92,9 @@ fi
 ##  DELETE/RECREATE/RECONFIGURE INDEXES AND MAPPINGS
 ##
 
-for index in "${INDEX_ARRAY[@]}"
-do
-    echo "DELETING  $index INDEX"
-    curl -XDELETE "$ELASTIC_HOST:$ELASTIC_PORT/$index" -H 'Content-Type: application/json'
-    echo
-done
+echo "DELETING  ${INDEX_NAME} INDEX"
+curl -XDELETE "$ELASTIC_HOST:$ELASTIC_PORT/$INDEX_NAME" -H 'Content-Type: application/json'
+echo
 
 
 #echo "DELETING MONGODB METADATA"
@@ -90,7 +103,7 @@ done
 
 echo
 echo "SETTING UP ELASTICSEARCH INDEXES"
-while curl -XGET "$ELASTIC_HOST:$ELASTIC_PORT/$INDEX_LIST,mongodb_meta" | grep '"status" : 200'; do
+while curl -XGET "$ELASTIC_HOST:$ELASTIC_PORT/$INDEX_NAME" | grep '"status" : 200'; do
     sleep 1
     echo "Waiting for indiciess to be removed…"
 done
@@ -101,26 +114,19 @@ echo "Ok to create indices!"
 echo
 
 ##  NOTE: THE FILE settings.json LIMITS TO 1 SHARD AND NO REPLICAS
-curl -XPUT "$ELASTIC_HOST:$ELASTIC_PORT/mongodb_meta" -H 'Content-Type: application/json'
+# curl -XPUT "$ELASTIC_HOST:$ELASTIC_PORT/mongodb_meta" -H 'Content-Type: application/json'
+# echo
+
+curl -XPUT "$ELASTIC_HOST:$ELASTIC_PORT/$INDEX_NAME/?format=yaml" -H 'Content-Type: application/json' -d @$CONFIG_DIR/settings.json
 echo
 
-for index in "${INDEX_ARRAY[@]}"
-do
-    curl -XPUT "$ELASTIC_HOST:$ELASTIC_PORT/$index/?format=yaml" -H 'Content-Type: application/json' -d @$CONFIG_DIR/settings.json
-    echo
-done
-
-
-for index in "${INDEX_ARRAY[@]}"
-do
-    #curl -XPUT "$ELASTIC_HOST:$ELASTIC_PORT/$index/?format=yaml" -H 'Content-Type: application/json' -d @$CONFIG_DIR/settings.json
-    echo
-    echo "ADDING $INDEX_TO_COLLECTION_MAP[$index] DOC TYPE MAPPING"
-    curl -XPUT "$ELASTIC_HOST:$ELASTIC_PORT/$index/_mapping/$INDEX_TO_COLLECTION_MAP[$index]?format=yaml" -H 'Content-Type: application/json' -d @$CONFIG_DIR/mapping_$index.json
-    echo
-done
 
 echo
-echo "FINISHED"
+echo "ADDING $INDEX_TO_COLLECTION_MAP[$INDEX_NAME] DOC TYPE MAPPING"
+curl -XPUT "$ELASTIC_HOST:$ELASTIC_PORT/$INDEX_NAME/_mapping/$INDEX_TO_COLLECTION_MAP[$INDEX_NAME]?format=yaml" -H 'Content-Type: application/json' -d @$CONFIG_DIR/mapping_$INDEX_NAME.json
+echo
+
+echo
+echo "FINISHED executing elasticsearch-configure.sh ......"
 
 exit 0
