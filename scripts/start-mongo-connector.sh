@@ -12,9 +12,10 @@ SKIP_INDEX_RESET=${SKIP_INDEX_RESET:-0}
 
 
 echo " value of SKIP_INDEX_RESET: ${SKIP_INDEX_RESET}"
-echo " value of $ELASTIC_HOST: ${ELASTIC_HOST}"
+echo " value of ELASTIC_HOST: ${ELASTIC_HOST}"
 echo " value of ELASTIC_PORT: ${ELASTIC_PORT}"
 echo " value of MONGO_HOSTS: ${MONGO_HOSTS}"
+echo " value of INDEX_NAME: ${INDEX_NAME}"
 
 if [ $SKIP_INDEX_RESET -eq 1 ]
 then
