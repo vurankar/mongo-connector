@@ -34,7 +34,7 @@ INDEX_NAME=${INDEX_NAME:-""}
 
 # convert input K8 friendly index name to actual index name
 # Eg: resourcetypes -> resource_types
-INDEX_NAME=INDEX_NAME_MAP[$INDEX_NAME]
+INDEX_NAME=${INDEX_NAME_MAP[$INDEX_NAME]}
 
 echo "setting mongo-connector for index ${INDEX_NAME}"
 
@@ -122,8 +122,8 @@ echo
 
 
 echo
-echo "ADDING $INDEX_TO_COLLECTION_MAP[$INDEX_NAME] DOC TYPE MAPPING"
-curl -XPUT "$ELASTIC_HOST:$ELASTIC_PORT/$INDEX_NAME/_mapping/$INDEX_TO_COLLECTION_MAP[$INDEX_NAME]?format=yaml" -H 'Content-Type: application/json' -d @$CONFIG_DIR/mapping_$INDEX_NAME.json
+echo "ADDING ${INDEX_TO_COLLECTION_MAP[$INDEX_NAME]} DOC TYPE MAPPING"
+curl -XPUT "$ELASTIC_HOST:$ELASTIC_PORT/$INDEX_NAME/_mapping/${INDEX_TO_COLLECTION_MAP[$INDEX_NAME]}?format=yaml" -H 'Content-Type: application/json' -d @$CONFIG_DIR/mapping_$INDEX_NAME.json
 echo
 
 echo
