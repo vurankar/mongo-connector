@@ -27,7 +27,7 @@ ADD scripts/elasticsearch-configure.sh ./elasticsearch-configure.sh
 ADD scripts/start-mongo-connector.sh ./start-mongo-connector.sh
 
 #ADD mongo-connector .././
-#RUN git clone 'https://github.com/RiffynInc/elastic2-doc-manager.git#search'
+RUN git clone 'https://github.com/RiffynInc/elastic2-doc-manager.git#6.7'
 #ADD elastic2-doc-manager ./elastic2-doc-manager
 #RUN pip install './mongo-connector[elastic5]'
 #RUN pip install -e ./elastic2-doc-manager[elastic5]
