@@ -13,7 +13,7 @@ FORCE=0
 # actual index names
 declare -A INDEX_NAME_MAP=( ["resourcetypes"]="resource_types"
                      ["propertytypes"]="property_types"
-                     ["resourcesandrun_data"]="resources_and_run_data"
+                     ["resourcesandrundata"]="resources_and_run_data"
 
                     )
 
