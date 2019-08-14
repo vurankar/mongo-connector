@@ -30,7 +30,7 @@ echo "setting mongo-connector for indices ${INDEX_NAME}"
 
 # $MONGO_HOSTS should be in format HOSTNAME:PORT
 # example mongodb01:27017,mongodb02:27017,mongodb03:27017
-mongo-connector --auto-commit-interval=0 -m $MONGO_HOSTS -c config/connector_${INDEX_NAME_MAP[$INDEX_NAME]}.json -t $ELASTIC_HOST:$ELASTIC_PORT --stdout
+mongo-connector --auto-commit-interval=0 -m $MONGO_HOSTS -c config/connector_${INDEX_NAME_MAP[$INDEX_NAME]}.json --oplog-ts /srv/riffyn/mongo-connector/oplogts -t $ELASTIC_HOST:$ELASTIC_PORT --stdout
 
 sleep 10
 
