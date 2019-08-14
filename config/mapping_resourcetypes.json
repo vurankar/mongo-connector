@@ -1,0 +1,81 @@
+{
+    "dynamic": false,
+    "properties": {
+        "name": {
+            "type": "text",
+            "fields": {
+                "nostem": {
+                    "type": "text",
+                    "analyzer": "nonword",
+                    "index_options": "docs"
+                },
+                "ngram_resource_type": {
+                    "type": "text",
+                    "analyzer": "entity_name",
+                    "index_options": "docs"
+                },
+                "edge_ngram_resource_type": {
+                    "type": "text",
+                    "analyzer": "autocomplete1",
+                    "index_options": "docs"
+                }
+            }
+        },
+        "definition": {
+            "type": "text",
+            "analyzer": "english"
+        },
+        "synonyms": {
+            "type": "text",
+            "index_options": "docs",
+            "fields": {
+                "nostem": {
+                    "type": "text",
+                    "analyzer": "nonword",
+                    "index_options": "docs"
+                },
+                "ngram_resource_type": {
+                    "type": "text",
+                    "analyzer": "entity_name",
+                    "index_options": "docs"
+                },
+                "edge_ngram_resource_type": {
+                    "type": "text",
+                    "analyzer": "autocomplete1",
+                    "index_options": "docs"
+                }
+            }
+        },
+        "source": {
+            "type": "text",
+            "index": true
+        },
+        "created": {
+            "type": "date",
+            "index": true
+        },
+        "modified": {
+            "type": "date",
+            "index": true
+        },
+        "version": {
+            "type": "text"
+        },
+        "immutable": {
+            "type": "boolean",
+            "index": true
+        },
+        "deleted": {
+            "type": "boolean",
+            "index": true
+        },
+        "accessibleTo": {
+            "properties": {
+                "_id": {
+                    "type": "keyword",
+                    "index": true
+                }
+            }
+        }
+    }
+}
