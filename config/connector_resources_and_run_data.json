@@ -2,35 +2,6 @@
     "continueOnError": true,
     "verbosity": 2,
     "namespaces": {
-        "unity.resourceTypes": {
-            "rename": "resource_types.resourceTypes",
-            "includeFields": [
-                "_id",
-                "name",
-                "definition",
-                "synonyms",
-                "source",
-                "created",
-                "accessibleTo",
-                "public",
-                "deleted"
-            ]
-        },
-        "unity.propertyTypes": {
-            "rename": "property_types.propertyTypes",
-            "includeFields": [
-                "_id",
-                "immutable",
-                "name",
-                "definition",
-                "synonyms",
-                "source",
-                "created",
-                "accessibleTo",
-                "public",
-                "deleted"
-            ]
-        },
         "unity.resources": {
             "rename": "resources_and_run_data.resources_and_run_data",
             "includeFields": [
@@ -77,7 +48,6 @@
     "docManagers": [
         {
             "docManager": "elastic2_doc_manager",
-            "targetURL": "elastic:9200",
             "bulkSize": 10000,
             "autoCommitInterval": 1,
             "args": {
