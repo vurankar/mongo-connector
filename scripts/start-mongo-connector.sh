@@ -8,21 +8,21 @@ declare -A INDEX_NAME_MAP=( ["resourcetypes"]="resource_types"
                     )
 
 
-SKIP_INDEX_RESET=${SKIP_INDEX_RESET:-0}
-#SKIP_INDEX_RESET  : 0: skip and 1: do not skip
+RESET_INDEX=${RESET_INDEX:-0}
+#SKIP_INDEX_RESET  : 0: do not reset and 1: reset index
 
 
-echo " value of SKIP_INDEX_RESET: ${SKIP_INDEX_RESET}"
+echo " value of RESET_INDEX: ${RESET_INDEX}"
 echo " value of ELASTIC_HOST: ${ELASTIC_HOST}"
 echo " value of ELASTIC_PORT: ${ELASTIC_PORT}"
 echo " value of MONGO_HOSTS: ${MONGO_HOSTS}"
 echo " value of INDEX_NAME: ${INDEX_NAME}"
 
-if [ $SKIP_INDEX_RESET -eq 1 ]
+if [ RESET_INDEX -eq 1 ]
 then
     bash elasticsearch-configure.sh -f
 else
-    echo "skipping elastic search configure because SKIP_INDEX_RESET is set to $SKIP_INDEX_RESET"
+    echo "skipping elastic search configure because RESET_INDEX is set to RESET_INDEX"
 fi
 
 INDEX_NAME=${INDEX_NAME:-""}
