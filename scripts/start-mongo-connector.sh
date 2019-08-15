@@ -1,8 +1,9 @@
 #!/bin/bash
 
+OPLOG_TIMESTAMP_LOCATION="/srv/riffyn/mongo-connector/oplogts"
 declare -A INDEX_NAME_MAP=( ["resourcetypes"]="resource_types"
                      ["propertytypes"]="property_types"
-                     ["resourcesandrun_data"]="resources_and_run_data"
+                     ["resourcesandrundata"]="resources_and_run_data"
 
                     )
 
@@ -25,12 +26,16 @@ else
 fi
 
 INDEX_NAME=${INDEX_NAME:-""}
+# convert input K8 friendly index name to actual index name
+# Eg: resourcetypes -> resource_types
+INDEX_NAME=${INDEX_NAME_MAP[$INDEX_NAME]}
 
-echo "setting mongo-connector for indices ${INDEX_NAME}"
+
+echo "setting mongo-connector for index ${INDEX_NAME}"
 
 # $MONGO_HOSTS should be in format HOSTNAME:PORT
 # example mongodb01:27017,mongodb02:27017,mongodb03:27017
-mongo-connector --auto-commit-interval=0 -m $MONGO_HOSTS -c config/connector_${INDEX_NAME_MAP[$INDEX_NAME]}.json --oplog-ts /srv/riffyn/mongo-connector/oplogts/oplog.timestamp  -t $ELASTIC_HOST:$ELASTIC_PORT --stdout
+mongo-connector --auto-commit-interval=0 -m $MONGO_HOSTS -c config/connector_${INDEX_NAME}.json --oplog-ts ${OPLOG_TIMESTAMP_LOCATION}/${INDEX_NAME}.oplog.timestamp  -t $ELASTIC_HOST:$ELASTIC_PORT --stdout
 
 sleep 10
 
