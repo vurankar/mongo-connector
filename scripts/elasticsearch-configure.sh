@@ -92,8 +92,8 @@ fi
 ##
 ##  DELETE/RECREATE/RECONFIGURE INDEXES AND MAPPINGS
 ##
-echo "DELETING oplog.timestamp file  ${OPLOG_TIMESTAMP_LOCATION}/${INDEX_NAME}.oplog.timestamp"
-rm ${OPLOG_TIMESTAMP_LOCATION}/${INDEX_NAME}.oplog.timestamp
+echo "DELETING oplog.timestamp file  ${OPLOG_TIMESTAMP_LOCATION}/oplog.timestamp"
+rm ${OPLOG_TIMESTAMP_LOCATION}/oplog.timestamp
 echo
 
 echo "DELETING  ${INDEX_NAME} INDEX"
