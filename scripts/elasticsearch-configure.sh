@@ -6,6 +6,7 @@ PROG=$0
 # ELASTIC_PORT="9200"
 CONFIG_DIR="config"
 FORCE=0
+OPLOG_TIMESTAMP_LOCATION="/srv/riffyn/mongo-connector/oplogts"
 
 # K8s deployment name follows pattern mongo-connector-indexname
 # K8s does not allow _ or uppercase letters in artifact names. So we need to pass
@@ -13,7 +14,7 @@ FORCE=0
 # actual index names
 declare -A INDEX_NAME_MAP=( ["resourcetypes"]="resource_types"
                      ["propertytypes"]="property_types"
-                     ["resourcesandrun_data"]="resources_and_run_data"
+                     ["resourcesandrundata"]="resources_and_run_data"
 
                     )
 
@@ -91,6 +92,9 @@ fi
 ##
 ##  DELETE/RECREATE/RECONFIGURE INDEXES AND MAPPINGS
 ##
+echo "DELETING oplog.timestamp file  ${OPLOG_TIMESTAMP_LOCATION}/${INDEX_NAME}.oplog.timestamp"
+rm ${OPLOG_TIMESTAMP_LOCATION}/${INDEX_NAME}.oplog.timestamp
+echo
 
 echo "DELETING  ${INDEX_NAME} INDEX"
 curl -XDELETE "$ELASTIC_HOST:$ELASTIC_PORT/$INDEX_NAME" -H 'Content-Type: application/json'
