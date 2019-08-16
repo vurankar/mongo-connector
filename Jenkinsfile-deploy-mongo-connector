@@ -27,12 +27,11 @@ if (params.CONTAINER?.trim()) {
 
 if (params.INDEX_NAME?.trim()) {
    // INDEX_NAME parameter was provided, set an override
-   OVERRIDE = "${OVERRIDE}  --set image.tag=${params.INDEX_NAME} "
+   OVERRIDE = "${OVERRIDE}  --set indexname=${params.INDEX_NAME} "
 } else {
    // INDEX_NAME parameter is empty, no override
-   OVERRIDE = "${OVERRIDE}  --set image.tag=propertytypes "
-   //currentBuild.result = 'FAILURE'
-   //return
+   currentBuild.result = 'FAILURE'
+   return
 }
 
 if (params.RESET_INDEX?.trim()) {
