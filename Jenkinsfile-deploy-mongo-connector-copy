@@ -13,50 +13,39 @@ import net.sf.json.JSONObject;
 def RIFFYN_ENV = env.BRANCH_NAME
 
 def FULL_CLUSTERNAME = "${RIFFYN_ENV}.riffyn.com"
-parameters([
-    string(
-      description: "Leave blank to use the value in the values file found in the repo.",
-      name: 'CONTAINER',
-      trim: true),
-    Choice(
-      Choices: ["resourceTypes","propertytypes", "resourcesandrundata"]
-      description: "Select the index for this instance of mongo connector",
-      name: 'INDEX_NAME',
-      trim: true),
-    string(
-      defaultValue: 'default',
-      description: "Leaving this value as default means the build job will attempt to use the same branch as the main repo (unity or mesh) and default to master if the branch does not exist",
-      name: 'RESET_INDEX',
-      trim: true)
-  ])
+
 
 def OVERRIDE = ''
 if (params.CONTAINER?.trim()) {
-   // CONTAINER parameter was provided, set an override
+   // CONTAINER parameter was provided, set an override 
    OVERRIDE = " --set image.tag=${params.CONTAINER} "
-} else {
+} else { 
    // CONTAINER parameter is empty, no override
    currentBuild.result = 'FAILURE'
    return
 }
 
 if (params.INDEX_NAME?.trim()) {
-   // INDEX_NAME parameter was provided, set an override
-   OVERRIDE = "${OVERRIDE}  --set indexname=${params.INDEX_NAME} "
-} else {
+   // INDEX_NAME parameter was provided, set an override 
+   OVERRIDE = OVERRIDE + " --set image.tag=${params.INDEX_NAME} "
+} else { 
    // INDEX_NAME parameter is empty, no override
    currentBuild.result = 'FAILURE'
    return
 }
 
 if (params.RESET_INDEX?.trim()) {
-   // INDEX_NAME parameter was provided, set an override
-   OVERRIDE = "${OVERRIDE} + --set resetIndex=${params.INDEX_NAME} "
+   // INDEX_NAME parameter was provided, set an override 
+   OVERRIDE = OVERRIDE + " --set image.tag=${params.INDEX_NAME} "
+} else { 
+   // INDEX_NAME parameter is empty, no override
+   currentBuild.result = 'FAILURE'
+   return
 }
 
 properties([
   disableConcurrentBuilds()
-])
+]) 
 
 podTemplate(
   label: "pod",
@@ -73,17 +62,17 @@ podTemplate(
 
         properties([
           parameters([
-            string(
+            string(  
               name: 'CONTAINER',
-              defaultValue: '',
-              description: 'required',
+              defaultValue: '', 
+              description: 'required',   
               trim: true),
 
-            string(
+            string(  
               name: 'INDEX_NAME',
-              defaultValue: '',
-              description: 'required',
-              trim: true),
+              defaultValue: '', 
+              description: 'required',   
+              trim: true),  
 
             booleanParam(
               name: 'REINSTALL',
@@ -123,9 +112,9 @@ podTemplate(
         withCredentials([file(credentialsId: "${FULL_CLUSTERNAME}-kubecfg-deployrobot", variable: 'KUBECONFIG')]) {
           sh """
             set +x
-            echo Environment: ${FULL_CLUSTERNAME}
+            echo Environment: ${FULL_CLUSTERNAME} 
 
-            helm init --client-only
+            helm init --client-only 
 
             # Perform all sanity tests
             helm lint devops/charts/${RIFFYN_APP}
@@ -152,23 +141,23 @@ podTemplate(
             sh """
               set +x
               echo helm delete ${RIFFYN_APP} --purge \
-               --description "${env.BUILD_URL}"
+               --description "${env.BUILD_URL}" 
               helm delete ${RIFFYN_APP} --purge \
-               --description "${env.BUILD_URL}"
+               --description "${env.BUILD_URL}" 
 
               echo helm install --name ${RIFFYN_APP} devops/charts/${RIFFYN_APP} --atomic \
                  -f riffyn-environments/k8s/helm-${RIFFYN_APP}-values.yaml \
                  -f riffyn-environments/k8s/helm-vpc-values.yaml ${OVERRIDE} \
-                 --description "${env.BUILD_URL}"
+                 --description "${env.BUILD_URL}" 
 
               helm install --name ${RIFFYN_APP} devops/charts/${RIFFYN_APP} --atomic \
                  -f riffyn-environments/k8s/helm-${RIFFYN_APP}-values.yaml \
                  -f riffyn-environments/k8s/helm-vpc-values.yaml ${OVERRIDE} \
-                 --description "${env.BUILD_URL}"
+                 --description "${env.BUILD_URL}" 
             """
           }
         }
-      } else {
+      } else { 
          echo 'Reinstall box was not checked'
       }
 
@@ -177,19 +166,19 @@ podTemplate(
         withCredentials([file(credentialsId: "${FULL_CLUSTERNAME}-kubecfg-deployrobot", variable: 'KUBECONFIG')]) {
           sh """
             set +x
-            echo updating Environment: ${FULL_CLUSTERNAME}
+            echo updating Environment: ${FULL_CLUSTERNAME}    
 
             echo helm upgrade ${RIFFYN_APP} devops/charts/${RIFFYN_APP} --atomic \
                -f riffyn-environments/k8s/helm-${RIFFYN_APP}-values.yaml \
                -f riffyn-environments/k8s/helm-vpc-values.yaml ${OVERRIDE} \
-               --description "${env.BUILD_URL}"
+               --description "${env.BUILD_URL}" 
 
             helm upgrade ${RIFFYN_APP} devops/charts/${RIFFYN_APP} --atomic \
                -f riffyn-environments/k8s/helm-${RIFFYN_APP}-values.yaml \
                -f riffyn-environments/k8s/helm-vpc-values.yaml ${OVERRIDE} \
-               --description "${env.BUILD_URL}"
+               --description "${env.BUILD_URL}" 
 
-            echo Values deployed to ${RIFFYN_APP} in ${FULL_CLUSTERNAME}
+            echo Values deployed to ${RIFFYN_APP} in ${FULL_CLUSTERNAME} 
             helm get values ${RIFFYN_APP}
 
             # download the current values of the running helm installation
