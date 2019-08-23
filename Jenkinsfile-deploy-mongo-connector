@@ -20,7 +20,7 @@ properties([
       name: 'CONTAINER',
       trim: true),
     choice(
-      choices: 'resourcetypes\propertytypes\resourcesandrundata'
+      choices: ['resourcetypes', 'propertytypes', 'resourcesandrundata'],
       description: "Select the index for this instance of mongo connector",
       name: 'INDEX_NAME',
       trim: true),
