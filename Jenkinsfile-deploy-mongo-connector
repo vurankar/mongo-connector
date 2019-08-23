@@ -19,7 +19,7 @@ properties([
       description: "Leave blank to use the value in the values file found in the repo.",
       name: 'CONTAINER',
       trim: true),
-    Choice(
+    choice(
       choices: ['dev', 'qa', 'qa2'],
       description: "Target VPC to deploy mongo-connector",
       name: 'VPC'
