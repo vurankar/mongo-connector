@@ -16,34 +16,18 @@ def FULL_CLUSTERNAME = "${RIFFYN_ENV}.riffyn.com"
 properties([
   parameters([
     string(
-      defaultValue: 'default',
-      description: "Leaving this value as default means the build job will attempt to use the same branch as the main repo (unity or mesh) and default to master if the branch does not exist",
-      name: 'UNITY_CORE_BRANCH',
+      description: "Leave blank to use the value in the values file found in the repo.",
+      name: 'CONTAINER',
       trim: true),
-    string(
-      defaultValue: 'default',
-      description: "Leaving this value as default means the build job will attempt to use the same branch as the main repo (unity or mesh) and default to master if the branch does not exist",
-      name: 'COREFS_BRANCH',
+    choice(
+      choices: 'resourcetypes\propertytypes\resourcesandrundata'
+      description: "Select the index for this instance of mongo connector",
+      name: 'INDEX_NAME',
       trim: true),
-    string(
-      defaultValue: 'default',
-      description: "Leaving this value as default means the build job will attempt to use the same branch as the main repo (unity or mesh) and default to master if the branch does not exist",
-      name: 'CORE_ACCOUNTS_BRANCH',
-      trim: true),
-    string(
-      defaultValue: 'default',
-      description: "Leaving this value as default means the build job will attempt to use the same branch as the main repo (unity or mesh) and default to master if the branch does not exist",
-      name: 'METEOR_ACCOUNTS_OKTA_BRANCH',
-      trim: true),
-    string(
-      defaultValue: 'default',
-      description: "Leaving this value as default means the build job will attempt to use the same branch as the main repo (unity or mesh) and default to master if the branch does not exist",
-      name: 'METEOR_OKTA_BRANCH',
-      trim: true),
-    string(
-      defaultValue: 'default',
-      description: "Leaving this value as default means the build job will attempt to use the same branch as the main repo (unity or mesh) and default to master if the branch does not exist",
-      name: 'SET_CONNECTION_OPTIONS_BRANCH',
+    booleanParam(
+      defaultValue: 'false',
+      description: "Resets data in elasticsearch for this index",
+      name: 'RESET_INDEX',
       trim: true)
   ])
 ])
