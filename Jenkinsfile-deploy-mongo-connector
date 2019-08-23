@@ -42,6 +42,7 @@ def OVERRIDE = ''
 if (params.VPC?.trim()) {
    // VPC parameter is provided
    RIFFYN_ENV = params.VPC
+   FULL_CLUSTERNAME = "${RIFFYN_ENV}.riffyn.com"
 } else {
    // VPC parameter is empty
    currentBuild.result = 'FAILURE'
