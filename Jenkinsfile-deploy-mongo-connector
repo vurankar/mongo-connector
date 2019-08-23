@@ -13,22 +13,40 @@ import net.sf.json.JSONObject;
 def RIFFYN_ENV = env.BRANCH_NAME
 
 def FULL_CLUSTERNAME = "${RIFFYN_ENV}.riffyn.com"
-parameters([
+properties([
+  parameters([
     string(
-      description: "Leave blank to use the value in the values file found in the repo.",
-      name: 'CONTAINER',
-      trim: true),
-    Choice(
-      Choices: ["resourceTypes","propertytypes", "resourcesandrundata"]
-      description: "Select the index for this instance of mongo connector",
-      name: 'INDEX_NAME',
+      defaultValue: 'default',
+      description: "Leaving this value as default means the build job will attempt to use the same branch as the main repo (unity or mesh) and default to master if the branch does not exist",
+      name: 'UNITY_CORE_BRANCH',
       trim: true),
     string(
       defaultValue: 'default',
       description: "Leaving this value as default means the build job will attempt to use the same branch as the main repo (unity or mesh) and default to master if the branch does not exist",
-      name: 'RESET_INDEX',
+      name: 'COREFS_BRANCH',
+      trim: true),
+    string(
+      defaultValue: 'default',
+      description: "Leaving this value as default means the build job will attempt to use the same branch as the main repo (unity or mesh) and default to master if the branch does not exist",
+      name: 'CORE_ACCOUNTS_BRANCH',
+      trim: true),
+    string(
+      defaultValue: 'default',
+      description: "Leaving this value as default means the build job will attempt to use the same branch as the main repo (unity or mesh) and default to master if the branch does not exist",
+      name: 'METEOR_ACCOUNTS_OKTA_BRANCH',
+      trim: true),
+    string(
+      defaultValue: 'default',
+      description: "Leaving this value as default means the build job will attempt to use the same branch as the main repo (unity or mesh) and default to master if the branch does not exist",
+      name: 'METEOR_OKTA_BRANCH',
+      trim: true),
+    string(
+      defaultValue: 'default',
+      description: "Leaving this value as default means the build job will attempt to use the same branch as the main repo (unity or mesh) and default to master if the branch does not exist",
+      name: 'SET_CONNECTION_OPTIONS_BRANCH',
       trim: true)
   ])
+])
 
 def OVERRIDE = ''
 if (params.CONTAINER?.trim()) {
