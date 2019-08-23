@@ -22,13 +22,13 @@ properties([
     choice(
       choices: ['resourcetypes', 'propertytypes', 'resourcesandrundata'],
       description: "Select the index for this instance of mongo connector",
-      name: 'INDEX_NAME',
-      trim: true),
+      name: 'INDEX_NAME'
+      ),
     booleanParam(
       defaultValue: 'false',
       description: "Resets data in elasticsearch for this index",
-      name: 'RESET_INDEX',
-      trim: true)
+      name: 'RESET_INDEX'
+      )
   ])
 ])
 
@@ -51,11 +51,12 @@ if (params.INDEX_NAME?.trim()) {
    return
 }
 
-if (params.RESET_INDEX?.trim()) {
+if (params.RESET_INDEX == true) {
    // INDEX_NAME parameter was provided, set an override
-   OVERRIDE = "${OVERRIDE} + --set resetIndex=${params.INDEX_NAME} "
+   OVERRIDE = "${OVERRIDE} + --set resetIndex=1 "
 }
 
+// what does this do ?
 properties([
   disableConcurrentBuilds()
 ])
