@@ -19,6 +19,11 @@ properties([
       description: "Leave blank to use the value in the values file found in the repo.",
       name: 'CONTAINER',
       trim: true),
+    Choice(
+      choices: ['dev', 'qa', 'qa2'],
+      description: "Target VPC to deploy mongo-connector",
+      name: 'VPC'
+      ),
     choice(
       choices: ['resourcetypes', 'propertytypes', 'resourcesandrundata'],
       description: "Select the index for this instance of mongo connector",
@@ -33,6 +38,16 @@ properties([
 ])
 
 def OVERRIDE = ''
+
+if (params.VPC?.trim()) {
+   // VPC parameter is provided
+   RIFFYN_ENV = params.VPC
+} else {
+   // VPC parameter is empty
+   currentBuild.result = 'FAILURE'
+   return
+}
+
 if (params.CONTAINER?.trim()) {
    // CONTAINER parameter was provided, set an override
    OVERRIDE = " --set image.tag=${params.CONTAINER} "
@@ -56,6 +71,7 @@ if (params.RESET_INDEX == true) {
    OVERRIDE = "${OVERRIDE} + --set resetIndex=1 "
 }
 
+echo 'OVERRIDE is ${OVERRIDE}'
 // what does this do ?
 properties([
   disableConcurrentBuilds()
@@ -74,35 +90,11 @@ podTemplate(
     container('jnlp') {
       stage('Clone repositories and read settings') {
 
-        properties([
-          parameters([
-            string(
-              name: 'CONTAINER',
-              defaultValue: '',
-              description: 'required',
-              trim: true),
-
-            string(
-              name: 'INDEX_NAME',
-              defaultValue: '',
-              description: 'required',
-              trim: true),
-
-            booleanParam(
-              name: 'REINSTALL',
-              description: 'Use this to delete and reinstall the application.  This is useful if the application is stuck in an inconsistent state and helm is unable to deploy.  Using this will cause the load balancer to be deleted and recreated.  The new load balancer may take up to 5 minutes to appear in DNS.'),
-
-            booleanParam(
-              name: 'RESET_INDEX',
-              description: 'Reset index in Elasticsearch. This drops and repopulates the index in Elasticsearch')
-          ])
-        ])
-
         dir('riffyn-environments') {
           checkout([
             $class: 'GitSCM',
-            branches: [[name: "*/${env.BRANCH_NAME}"]],
-            userRemoteConfigs: scm.userRemoteConfigs
+            branches: [[name: "*/${RIFFYN_ENV}"]],
+            userRemoteConfigs: [[credentialsId: 'github', url: 'https://github.com/RiffynInc/riffyn-environments.git']]
           ])
         }
 
@@ -112,12 +104,6 @@ podTemplate(
             userRemoteConfigs: [[credentialsId: 'github', url: 'https://github.com/RiffynInc/devops.git']]
           ])
         }
-
-        // Read the jenkins_settings.json file from this branch of the riffyn-environments repo
-        // This will populate variables such as config.foo.bar
-        // def inputFile = readFile('riffyn-environments/jenkins_settings.json')
-        // def config = new groovy.json.JsonSlurperClassic().parseText(inputFile)
-        // println "pipeline config ==> ${config}"
       }
     }
 
