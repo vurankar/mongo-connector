@@ -69,7 +69,8 @@ if (params.INDEX_NAME?.trim()) {
 
 if (params.RESET_INDEX == true) {
    // INDEX_NAME parameter was provided, set an override
-   OVERRIDE = "${OVERRIDE} + --set resetIndex=1 "
+   OVERRIDE = "${OVERRIDE}  --set resetIndex=1 "
+   OVERRIDE = "${OVERRIDE}  --set resetIndex=1 "
 }
 
 echo 'OVERRIDE is ${OVERRIDE}'
