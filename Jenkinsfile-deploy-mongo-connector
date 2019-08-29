@@ -33,7 +33,10 @@ properties([
       defaultValue: 'false',
       description: "Resets data in elasticsearch for this index",
       name: 'RESET_INDEX'
-      )
+      ),
+    booleanParam(
+      name: 'REINSTALL',
+      description: 'Use this to delete and reinstall the application.  This is useful if the application is stuck in an inconsistent state and helm is unable to deploy.  Using this will cause the load balancer to be deleted and recreated.  The new load balancer may take up to 5 minutes to appear in DNS.')
   ])
 ])
 
