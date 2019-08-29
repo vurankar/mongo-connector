@@ -102,7 +102,7 @@ podTemplate(
 
         dir('devops') {
           checkout([$class: 'GitSCM',
-            branches: [[name: '*/master']],
+            branches: [[name: '*/search']],
             userRemoteConfigs: [[credentialsId: 'github', url: 'https://github.com/RiffynInc/devops.git']]
           ])
         }
