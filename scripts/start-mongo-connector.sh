@@ -18,11 +18,11 @@ echo " value of ELASTIC_PORT: ${ELASTIC_PORT}"
 echo " value of MONGO_HOSTS: ${MONGO_HOSTS}"
 echo " value of INDEX_NAME: ${INDEX_NAME}"
 
-if [ RESET_INDEX -eq 1 ]
+if [ "$RESET_INDEX" == "1" ]
 then
     bash elasticsearch-configure.sh -f
 else
-    echo "skipping elastic search configure because RESET_INDEX is set to RESET_INDEX"
+    echo "skipping elastic search configure because RESET_INDEX is set to $RESET_INDEX"
 fi
 
 INDEX_NAME=${INDEX_NAME:-""}
