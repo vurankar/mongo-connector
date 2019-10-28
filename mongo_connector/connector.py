@@ -29,6 +29,9 @@ import sys
 import threading
 import time
 
+import prometheus_client
+from prometheus_client import start_http_server
+
 from pymongo import MongoClient
 
 from mongo_connector import config, constants, errors, util
@@ -1354,6 +1357,11 @@ def main():
         return sig_handler
     signal.signal(signal.SIGTERM, signame_handler('SIGTERM'))
     signal.signal(signal.SIGINT, signame_handler('SIGINT'))
+
+    # Start up the server to expose the metrics.
+    start_http_server(8000)
+
+    LOG.always(">>>>>>>>>> prometheus server port: '%s'", "8000")
 
     connector.start()
 

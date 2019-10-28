@@ -17,6 +17,7 @@
 
 import bson
 import logging
+
 try:
     import Queue as queue
 except ImportError:
@@ -24,6 +25,9 @@ except ImportError:
 import sys
 import time
 import threading
+
+import prometheus_client
+from prometheus_client import Summary, Counter, Gauge, Enum
 
 import pymongo
 
@@ -46,21 +50,60 @@ class ReplicationLagLogger(threading.Thread):
         self.interval = interval
         self.daemon = True
 
+        self.oplog_status = Enum('oplog_status', 'Status of mongo-connector syncing with the oplog',
+                 states=['ingesting', 'behind_time', 'behind_entries', 'up_to_date', 'behind_entries_and_time'])
+
+        self.oplog_behind_seconds = Gauge('oplog_behind_seconds', 'Oplog is behind in time')
+        self.oplog_behind_entries = Gauge('oplog_behind_entries', 'Oplog is behind in entries')
+
     def log_replication_lag(self):
         checkpoint = self.opman.checkpoint
         if checkpoint is None:
+            self.oplog_status.state('ingesting')
             return
         newest_write = retry_until_ok(self.opman.get_last_oplog_timestamp)
+
+        lag_secs = newest_write.time - checkpoint.time
+        lag_inc = newest_write.inc - checkpoint.inc
+
+        if (lag_secs > 0) and (lag_inc > 0):
+            self.oplog_status.state('behind_entries_and_time')
+            self.oplog_behind_seconds.set_to_current_time()
+            self.oplog_behind_seconds.set(lag_secs)
+            self.oplog_behind_entries.set_to_current_time()
+            self.oplog_behind_entries.set(lag_inc)
+        elif (lag_secs == 0) and (lag_inc == 0):
+            self.oplog_status.state('up_to_date')
+            self.oplog_behind_seconds.set_to_current_time()
+            self.oplog_behind_seconds.set(0)
+            self.oplog_behind_entries.set_to_current_time()
+            self.oplog_behind_entries.set(0)
+        else:
+            if lag_secs > 0:
+                self.oplog_status.state('behind_time')
+                self.oplog_behind_seconds.set_to_current_time()
+                self.oplog_behind_seconds.set(lag_secs)
+            else:
+                self.oplog_behind_seconds.set_to_current_time()
+                self.oplog_behind_seconds.set(0)
+
+            if lag_inc > 0:
+                self.oplog_status.state('behind_entries')
+                self.oplog_behind_entries.set_to_current_time()
+                self.oplog_behind_entries.set(lag_inc)
+            else:
+                self.oplog_behind_entries.set_to_current_time()
+                self.oplog_behind_entries.set(0)
+
         if newest_write < checkpoint:
             # OplogThread will perform a rollback, don't log anything
             return
-        lag_secs = newest_write.time - checkpoint.time
+
         if lag_secs > 0:
             LOG.info("OplogThread for replica set '%s' is %s seconds behind "
                      "the oplog.",
                      self.opman.replset_name, lag_secs)
         else:
-            lag_inc = newest_write.inc - checkpoint.inc
             if lag_inc > 0:
                 LOG.info("OplogThread for replica set '%s' is %s entries "
                          "behind the oplog.",
@@ -127,6 +170,17 @@ class OplogThread(threading.Thread):
             err_msg = 'OplogThread: No oplog for thread:'
             LOG.warning('%s %s' % (err_msg, self.primary_client))
 
+        self.doc_summary_title = 'doc_operation_time'
+        self.doc_count_title = 'doc_operation'
+        self.REQUEST_TIME = Summary(self.doc_summary_title, 'Operations on documents for Elasticsearch')
+        self.doc_operation_count = Counter(self.doc_count_title, 'Document operation', ['operation_type'])
+
+        self.REQUEST_TIME_INGESTION = Summary('ingestion_time', 'Time spent processing bulk operation')
+        self.ingest_rate = Counter('ingest_rate', 'Number of documents ingested per bulk operation', ['collectionName'])
+
+        self.ERROR_TIME = Summary('oplog_errors_caught', 'Errors caught')
+        self.error_caught = Counter('oplog_error_caught', 'Error caught', ['message', 'response'])
+
     def _should_skip_entry(self, entry):
         """Determine if this oplog entry should be skipped.
 
@@ -192,6 +246,7 @@ class OplogThread(threading.Thread):
         """
         ReplicationLagLogger(self, 30).start()
         LOG.debug("OplogThread: Run thread started")
+
         while self.running is True:
             LOG.debug("OplogThread: Getting cursor")
             cursor, cursor_empty = retry_until_ok(self.init_cursor)
@@ -235,11 +290,19 @@ class OplogThread(threading.Thread):
                             last_ts = entry['ts']
                             continue
 
+                        op_add = 0
+                        op_remove = 0
+                        op_update = 0
+
                         # Sync the current oplog operation
                         operation = entry['op']
                         ns = entry['ns']
                         timestamp = util.bson_ts_to_long(entry['ts'])
                         for docman in self.doc_managers:
+                            @self.ERROR_TIME.time()
+                            def process_exception(metric):
+                                metric.inc()
+
                             try:
                                 LOG.debug("OplogThread: Operation for this "
                                           "entry is %s" % str(operation))
@@ -249,6 +312,7 @@ class OplogThread(threading.Thread):
                                     docman.remove(
                                         entry['o']['_id'], ns, timestamp)
                                     remove_inc += 1
+                                    op_remove += 1
 
                                 # Insert
                                 elif operation == 'i':  # Insert
@@ -266,6 +330,7 @@ class OplogThread(threading.Thread):
                                     else:
                                         docman.upsert(doc, ns, timestamp)
                                     upsert_inc += 1
+                                    op_add += 1
 
                                 # Update
                                 elif operation == 'u':
@@ -273,6 +338,7 @@ class OplogThread(threading.Thread):
                                                   entry['o'],
                                                   ns, timestamp)
                                     update_inc += 1
+                                    op_update += 1
 
                                 # Command
                                 elif operation == 'c':
@@ -283,10 +349,40 @@ class OplogThread(threading.Thread):
                                                           timestamp)
 
                             except errors.OperationFailed:
+                                # Remove
+                                if operation == 'd':
+                                    if op_remove > 0:
+                                        op_remove -= 1
+                                # Insert
+                                elif operation == 'i':
+                                    if op_add > 0:
+                                        op_add -= 1
+                                # Update
+                                elif operation == 'u':
+                                    if op_update > 0:
+                                        op_update -= 1
+
+                                process_exception(self.error_caught.labels('cannot_process_doc', errors.OperationFailed))
+
                                 LOG.exception(
                                     "Unable to process oplog document %r"
                                     % entry)
                             except errors.ConnectionFailed:
+                                # Remove
+                                if operation == 'd':
+                                    if op_remove > 0:
+                                        op_remove -= 1
+                                # Insert
+                                elif operation == 'i':
+                                    if op_add > 0:
+                                        op_add -= 1
+                                # Update
+                                elif operation == 'u':
+                                    if op_update > 0:
+                                        op_update -= 1
+
+                                process_exception(self.error_caught.labels('connection_failed', errors.ConnectionFailed))
+
                                 LOG.exception(
                                     "Connection failed while processing oplog "
                                     "document %r" % entry)
@@ -306,6 +402,20 @@ class OplogThread(threading.Thread):
                         if n % self.batch_size == 1:
                             self.update_checkpoint(last_ts)
                             last_ts = None
+
+                        LOG.always(
+                            "Counter: Documents removed: %d, "
+                            "inserted: %d, updated: %d so far" % (
+                                op_remove, op_add, op_update))
+
+                        # TODO: Add collection name as label
+                        @self.REQUEST_TIME.time()
+                        def process_request(add, remove, update):
+                            self.doc_operation_count.labels('add').inc(add)
+                            self.doc_operation_count.labels('remove').inc(remove)
+                            self.doc_operation_count.labels('update').inc(update)
+
+                        process_request(op_add, op_remove, op_update)
 
                     # update timestamp after running through oplog
                     if last_ts is not None:
@@ -598,6 +708,8 @@ class OplogThread(threading.Thread):
                 LOG.error("Failed to upsert %d docs" % num_failed)
 
         def upsert_all(dm):
+            docs_ingested_amount = 0
+
             try:
                 for namespace in dump_set:
                     from_coll = self.get_collection(namespace)
@@ -609,16 +721,49 @@ class OplogThread(threading.Thread):
                              total_docs, namespace)
 
                     docs = docs_to_dump(from_coll)
+                    # for doc in docs:
+                    #     if namespace == 'unity.resources':
+                    #         doc['data_join'] = '_id'
+                    #     elif namespace == 'unity.runData':
+                    #         doc['data_join'] = {
+                    #             "name": "resourceId",
+                    #             "parent": doc['resourceId']
+                    #         }
+
+                    # TODO: Docs to ingest ("attempting", no success/error callback)
+
                     dm.bulk_upsert(docs,
-                                   mapped_ns, long_ts)
+                                   mapped_ns, long_ts, namespace)
+
+                    docs_ingested_amount += total_docs
+
+                    @self.REQUEST_TIME_INGESTION.time()
+                    def process_request(add):
+                        self.ingest_rate.labels(namespace).inc(add)
+
+                    process_request(total_docs)
+                    LOG.always("_____________________________________________________________________________")
+                    LOG.always(namespace)
+                    LOG.always("~")
+                    LOG.always(total_docs)
+                    LOG.always("_____________________________________________________________________________")
             except Exception:
                 if self.continue_on_error:
+                    @self.ERROR_TIME.time()
+                    def process_exception(metric):
+                        metric.inc()
+
+                    process_exception(self.error_caught.labels('bulk_serial', Exception))
+
                     LOG.exception("OplogThread: caught exception"
                                   " during bulk upsert, re-upserting"
                                   " documents serially")
                     upsert_each(dm)
                 else:
                     raise
+            else:
+                LOG.always("________DOCS INGESTED AMOUNT")
+                LOG.always(docs_ingested_amount)
 
         def do_dump(dm, error_queue):
             try:
