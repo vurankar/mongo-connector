@@ -123,7 +123,7 @@ if os.path.exists(__path('build.info')):
     build = open(__path('build.info')).read().strip()
 
 setup(name='mongo-connector',
-      version='{}.{}'.format("2.5.2", build),
+      version='{}.{}'.format("2.5.2.riffyn", build),
       author="MongoDB, Inc.",
       author_email='mongodb-user@googlegroups.com',
       description='Mongo Connector',
