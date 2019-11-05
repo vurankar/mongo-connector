@@ -1358,10 +1358,12 @@ def main():
     signal.signal(signal.SIGTERM, signame_handler('SIGTERM'))
     signal.signal(signal.SIGINT, signame_handler('SIGINT'))
 
-    # Start up the server to expose the metrics.
-    start_http_server(8000)
-
-    LOG.always(">>>>>>>>>> prometheus server port: '%s'", "8000")
+    try:
+        # Start up the server to expose the metrics.
+        start_http_server(8000)
+        LOG.always(">>>>>>>>>> prometheus server port: '%s'", "8000")
+    except:
+        LOG.always('??????????????? where is my server?')
 
     connector.start()
 

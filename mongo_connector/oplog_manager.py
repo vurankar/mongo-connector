@@ -734,6 +734,7 @@ class OplogThread(threading.Thread):
 
                     dm.bulk_upsert(docs,
                                    mapped_ns, long_ts, namespace)
+                    # , 'extra arg for error')
 
                     docs_ingested_amount += total_docs
 
