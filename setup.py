@@ -132,7 +132,7 @@ setup(name='mongo-connector',
       license="http://www.apache.org/licenses/LICENSE-2.0.html",
       platforms=["any"],
       classifiers=filter(None, classifiers.split("\n")),
-      install_requires=['pymongo >= 2.9'],
+      install_requires=['pymongo >= 2.9', 'prometheus_client'],
       packages=["mongo_connector", "mongo_connector.doc_managers",
                 "mongo_connector.plugins"],
       package_data={

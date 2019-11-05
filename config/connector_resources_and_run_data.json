@@ -7,6 +7,7 @@
             "includeFields": [
                 "_id",
                 "typeId",
+                "typeName",
                 "experimentId",
                 "activityId",
                 "activityName",
@@ -37,6 +38,9 @@
                 "resourceName",
                 "propertyId",
                 "propertyName",
+                "experimentId",
+                "activityId",
+                "runId",
                 "unitId",
                 "unitName",
                 "unitSymbol",
