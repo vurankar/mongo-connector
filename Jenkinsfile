@@ -39,17 +39,17 @@ podTemplate(
         ])
         checkout([
           $class: 'GitSCM',
-          branches: [[name: '*/master']],
+          branches: [[name: "*/${ELASTIC2_DOC_MANAGER_BRANCH}"]],
           doGenerateSubmoduleConfigurations: false,
           extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'elastic2-doc-manager']],
           submoduleCfg: [],
           userRemoteConfigs: [[credentialsId: 'github', url: 'https://github.com/RiffynInc/elastic2-doc-manager.git']]
         ])
 
-        def elastic2DocManagerBranch = "${ELASTIC2_DOC_MANAGER_BRANCH}".trim()
-        dir('elastic2-doc-manager') {
-          elastic2DocManagerBranch = checkoutBranch(mongoConnectorBranch, "elastic2-doc-manager", elastic2DocManagerBranch)
-        }
+        // def elastic2DocManagerBranch = "${ELASTIC2_DOC_MANAGER_BRANCH}".trim()
+        // dir('elastic2-doc-manager') {
+        //   elastic2DocManagerBranch = checkoutBranch(mongoConnectorBranch, "elastic2-doc-manager", elastic2DocManagerBranch)
+        // }
       }
     }
     container('python-build-container') {
