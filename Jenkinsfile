@@ -37,19 +37,22 @@ podTemplate(
           extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'mongo-connector']],
           userRemoteConfigs: scm.userRemoteConfigs
         ])
-        checkout([
-          $class: 'GitSCM',
-          branches: [[name: "*/${ELASTIC2_DOC_MANAGER_BRANCH}"]],
+
+
+        checkout([$class: 'GitSCM',
+          branches: [[name: '*/master']],
           doGenerateSubmoduleConfigurations: false,
           extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'elastic2-doc-manager']],
           submoduleCfg: [],
           userRemoteConfigs: [[credentialsId: 'github', url: 'https://github.com/RiffynInc/elastic2-doc-manager.git']]
         ])
 
-        // def elastic2DocManagerBranch = "${ELASTIC2_DOC_MANAGER_BRANCH}".trim()
-        // dir('elastic2-doc-manager') {
-        //   elastic2DocManagerBranch = checkoutBranch(mongoConnectorBranch, "elastic2-doc-manager", elastic2DocManagerBranch)
-        // }
+        def elastic2DocManagerBranch = "${ELASTIC2_DOC_MANAGER_BRANCH}".trim()
+        dir('elastic2-doc-manager')
+        {
+          elastic2DocManagerBranch = checkoutBranch(mongoConnectorBranch, "elastic2-doc-manager", elastic2DocManagerBranch)
+        }
+
       }
     }
     container('python-build-container') {
@@ -79,7 +82,11 @@ podTemplate(
   }
 }
 def branchExists(branchName) {
+  sh(returnStatus: true, script: "pwd")
+  sh(returnStatus: true, script: "ls")
+  echo " Checking branch name ${branchName}"
   def branchExists = sh(returnStatus: true, script: "git show-branch remotes/origin/${branchName}")
+  echo " Branch exists: ${branchExists}"
   if (branchExists == 0) {
     return true
   }
@@ -87,6 +94,24 @@ def branchExists(branchName) {
     return false
   }
 }
+
+// Determine the subrepo branch name.
+// this is a weak method because it does not check if the
+// branches actually exist.
+def getBranchName(subRepoBranch, mainRepoBranch) {
+    // if user specified a branch then use it
+      if (subRepoBranch.trim() != "default") {
+        return subRepoBranch.trim()
+      }
+      // If the subRepoBranch is "default" then determine which branch to use based on the mainRepoBranch
+      else
+      {
+        return mainRepoBranch
+      }
+}
+
+// not used because branchExists() method has become cranky and
+// does not recognize branches.
 def checkoutBranch(mainRepoBranch, subRepoName, subRepoBranch) {
   // if user specified a branch then switch to it
   if (subRepoBranch.trim() != "default") {
