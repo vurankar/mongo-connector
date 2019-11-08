@@ -1,8 +1,8 @@
 properties([
   parameters([
     string(
-      defaultValue: 'default',
-      description: "Leaving this value as default means the build job will attempt to use the same branch as the main repo (mongo-connector) and default to master if the branch does not exist",
+      defaultValue: 'master',
+      description: "Default value is master, meaning the build job will use master branch of elastic2-doc-manager. If you want a different branch, specify the branch name here.",
       name: 'ELASTIC2_DOC_MANAGER_BRANCH',
       trim: true),
   ])
@@ -38,21 +38,20 @@ podTemplate(
           userRemoteConfigs: scm.userRemoteConfigs
         ])
 
-
-        checkout([$class: 'GitSCM',
-          branches: [[name: '*/master']],
+        def subRepoBranchName = getBranchName("${ELASTIC2_DOC_MANAGER_BRANCH}".trim(), mongoConnectorBranch)
+        checkout([
+          $class: 'GitSCM',
+          branches: [[name: "*/${subRepoBranchName}"]],
           doGenerateSubmoduleConfigurations: false,
           extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'elastic2-doc-manager']],
           submoduleCfg: [],
           userRemoteConfigs: [[credentialsId: 'github', url: 'https://github.com/RiffynInc/elastic2-doc-manager.git']]
         ])
 
-        def elastic2DocManagerBranch = "${ELASTIC2_DOC_MANAGER_BRANCH}".trim()
-        dir('elastic2-doc-manager')
-        {
-          elastic2DocManagerBranch = checkoutBranch(mongoConnectorBranch, "elastic2-doc-manager", elastic2DocManagerBranch)
-        }
-
+        // def elastic2DocManagerBranch = "${ELASTIC2_DOC_MANAGER_BRANCH}".trim()
+        // dir('elastic2-doc-manager') {
+        //   elastic2DocManagerBranch = checkoutBranch(mongoConnectorBranch, "elastic2-doc-manager", elastic2DocManagerBranch)
+        // }
       }
     }
     container('python-build-container') {
@@ -82,11 +81,7 @@ podTemplate(
   }
 }
 def branchExists(branchName) {
-  sh(returnStatus: true, script: "pwd")
-  sh(returnStatus: true, script: "ls")
-  echo " Checking branch name ${branchName}"
   def branchExists = sh(returnStatus: true, script: "git show-branch remotes/origin/${branchName}")
-  echo " Branch exists: ${branchExists}"
   if (branchExists == 0) {
     return true
   }
