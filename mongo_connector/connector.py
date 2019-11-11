@@ -1365,6 +1365,20 @@ def main():
     except:
         LOG.always('??????????????? where is my server?')
 
+    LOG.always('******************** ENV VAR?')
+    LOG.always('INDEX_NAME:')
+    LOG.always(os.environ.get('INDEX_NAME'))
+    LOG.always('RESET_INDEX:')
+    LOG.always(os.environ.get('RESET_INDEX'))
+    LOG.always('JOIN_INDEX:')
+    LOG.always(os.environ.get('JOIN_INDEX'))
+    LOG.always('JOIN_FIELD:')
+    LOG.always(os.environ.get('JOIN_FIELD'))
+    LOG.always('CHILD_FIELD_1:')
+    LOG.always(os.environ.get('CHILD_FIELD_1'))
+    LOG.always('CHILD_FIELD_2:')
+    LOG.always(os.environ.get('CHILD_FIELD_2'))
+
     connector.start()
 
     while True:
