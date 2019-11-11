@@ -18,6 +18,14 @@ echo " value of ELASTIC_PORT: ${ELASTIC_PORT}"
 echo " value of MONGO_HOSTS: ${MONGO_HOSTS}"
 echo " value of INDEX_NAME: ${INDEX_NAME}"
 
+# check if the index exists. If the index is absent in ES, continue with RESET INDEX flow
+# is there a easier way to check if a index is present in ElasticSearch ?
+if [ $(curl --write-out %{http_code} --silent --output /dev/null "$ELASTIC_HOST:$ELASTIC_PORT/$INDEX_NAME") == 200 ];
+then
+  RESET_INDEX="1"
+  echo "${INDEX_NAME} not found on ElasticSearch. Continue with RESET INDEX flow"
+fi
+
 if [ "$RESET_INDEX" == "1" ]
 then
     bash elasticsearch-configure.sh -f
