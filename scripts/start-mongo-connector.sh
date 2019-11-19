@@ -20,7 +20,7 @@ echo " value of INDEX_NAME: ${INDEX_NAME}"
 
 # check if the index exists. If the index is absent in ES, continue with RESET INDEX flow
 # is there a easier way to check if a index is present in ElasticSearch ?
-if [ $(curl --write-out %{http_code} --silent --output /dev/null "$ELASTIC_HOST:$ELASTIC_PORT/$INDEX_NAME") == 200 ];
+if [ $(curl --write-out %{http_code} --silent --output /dev/null -u "$ELASTIC_USER:$ELASTIC_PASSWORD" "$ELASTIC_HOST:$ELASTIC_PORT/$INDEX_NAME") == 200 ];
 then
   RESET_INDEX="1"
   echo "${INDEX_NAME} not found on ElasticSearch. Continue with RESET INDEX flow"
@@ -43,7 +43,7 @@ echo "setting mongo-connector for index ${INDEX_NAME}"
 
 # $MONGO_HOSTS should be in format HOSTNAME:PORT
 # example mongodb01:27017,mongodb02:27017,mongodb03:27017
-mongo-connector --auto-commit-interval=0 -m $MONGO_HOSTS -c config/connector_${INDEX_NAME}.json --oplog-ts ${OPLOG_TIMESTAMP_LOCATION}/oplog.timestamp  -t $ELASTIC_HOST:$ELASTIC_PORT --stdout
+mongo-connector --auto-commit-interval=0 -m $MONGO_HOSTS -c config/connector_${INDEX_NAME}.json --oplog-ts ${OPLOG_TIMESTAMP_LOCATION}/oplog.timestamp  -t $ELASTIC_USER:$ELASTIC_PASSWORD@$ELASTIC_HOST:$ELASTIC_PORT --stdout
 
 sleep 10
 
