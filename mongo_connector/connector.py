@@ -1024,6 +1024,17 @@ def get_config_options():
                 if k not in kwargs:
                     kwargs[k] = dm['args'][k]
 
+            LOG.always('ELASTIC_HOST:')
+            LOG.always(os.environ.get('ELASTIC_HOST'))
+            LOG.always('ELASTIC_PORT:')
+            LOG.always(os.environ.get('ELASTIC_PORT'))
+            LOG.always('ELASTIC_USER:')
+            LOG.always(os.environ.get('ELASTIC_USER'))
+            LOG.always('ELASTIC_PASSWORD:')
+            LOG.always(os.environ.get('ELASTIC_PASSWORD'))
+            LOG.always('targetURL:')
+            LOG.always(dm['targetURL'])
+
             target_url = dm['targetURL']
             if target_url:
                 dm_instances.append(DocManager(target_url, **kwargs))
