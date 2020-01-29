@@ -97,7 +97,7 @@ rm ${OPLOG_TIMESTAMP_LOCATION}/oplog.timestamp
 echo
 
 echo "DELETING  ${INDEX_NAME} INDEX"
-curl -XDELETE "$ELASTIC_HOST:$ELASTIC_PORT/$INDEX_NAME" -H 'Content-Type: application/json'
+curl -XDELETE -k "$ELASTIC_HOST:$ELASTIC_PORT/$INDEX_NAME" -H 'Content-Type: application/json'
 echo
 
 
@@ -107,7 +107,7 @@ echo
 
 echo
 echo "SETTING UP ELASTICSEARCH INDEXES"
-while curl -XGET "$ELASTIC_HOST:$ELASTIC_PORT/$INDEX_NAME" | grep '"status" : 200'; do
+while curl -XGET -k "$ELASTIC_HOST:$ELASTIC_PORT/$INDEX_NAME" | grep '"status" : 200'; do
     sleep 1
     echo "Waiting for indiciess to be removed…"
 done
@@ -121,13 +121,13 @@ echo
 # curl -XPUT "$ELASTIC_HOST:$ELASTIC_PORT/mongodb_meta" -H 'Content-Type: application/json'
 # echo
 
-curl -XPUT "$ELASTIC_HOST:$ELASTIC_PORT/$INDEX_NAME/?format=yaml" -H 'Content-Type: application/json' -d @$CONFIG_DIR/settings.json
+curl -XPUT -k "$ELASTIC_HOST:$ELASTIC_PORT/$INDEX_NAME/?format=yaml" -H 'Content-Type: application/json' -d @$CONFIG_DIR/settings.json
 echo
 
 
 echo
 echo "ADDING ${INDEX_TO_COLLECTION_MAP[$INDEX_NAME]} DOC TYPE MAPPING"
-curl -XPUT "$ELASTIC_HOST:$ELASTIC_PORT/$INDEX_NAME/_mapping/${INDEX_TO_COLLECTION_MAP[$INDEX_NAME]}?format=yaml" -H 'Content-Type: application/json' -d @$CONFIG_DIR/mapping_$INDEX_NAME.json
+curl -XPUT -k "$ELASTIC_HOST:$ELASTIC_PORT/$INDEX_NAME/_mapping/${INDEX_TO_COLLECTION_MAP[$INDEX_NAME]}?format=yaml" -H 'Content-Type: application/json' -d @$CONFIG_DIR/mapping_$INDEX_NAME.json
 echo
 
 echo
