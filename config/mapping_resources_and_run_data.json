@@ -109,6 +109,10 @@
             "type": "boolean",
             "index": true
         },
+        "immutable": {
+            "type": "boolean",
+            "index": true
+        },
         "assigned": {
             "type": "date"
         },
