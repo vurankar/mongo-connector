@@ -1371,12 +1371,15 @@ def main():
 
     try:
         # Start up the server to expose the metrics.
-        start_http_server(8000)
-        LOG.always(">>>>>>>>>> prometheus server port: '%s'", "8000")
+        prometheus_port = os.environ.get('PROMETHEUS_PORT') or 8000
+        start_http_server(prometheus_port)
+        LOG.always(">>>>>>>>>> prometheus server port: '%s'", prometheus_port)
     except:
         LOG.always('??????????????? where is my server?')
 
     LOG.always('******************** ENV VAR?')
+    LOG.always('PROMETHEUS_PORT:')
+    LOG.always(os.environ.get('PROMETHEUS_PORT'))
     LOG.always('INDEX_NAME:')
     LOG.always(os.environ.get('INDEX_NAME'))
     LOG.always('RESET_INDEX:')
