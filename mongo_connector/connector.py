@@ -1372,8 +1372,10 @@ def main():
     try:
         # Start up the server to expose the metrics.
         prometheus_port = os.environ.get('PROMETHEUS_PORT') or 8000
+        prometheus_port = int(prometheus_port)
         start_http_server(prometheus_port)
-        LOG.always(">>>>>>>>>> prometheus server port: '%s'", prometheus_port)
+        LOG.always("called start server")
+        LOG.always(">>>>>>>>>> prometheus server port: '%d'", prometheus_port)
     except:
         LOG.always('??????????????? where is my server?')
 
