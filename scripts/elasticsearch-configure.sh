@@ -8,20 +8,10 @@ CONFIG_DIR="config"
 FORCE=0
 OPLOG_TIMESTAMP_LOCATION="/srv/riffyn/mongo-connector/oplogts"
 
-# K8s deployment name follows pattern mongo-connector-indexname
-# K8s does not allow _ or uppercase letters in artifact names. So we need to pass
-# K8s friendly names to identify index names. This map converts input values to
-# actual index names
-declare -A INDEX_NAME_MAP=( ["resourcetypes"]="resource_types"
-                     ["propertytypes"]="property_types"
-                     ["resourcesandrundata"]="resources_and_run_data"
-
-                    )
 
 declare -A INDEX_TO_COLLECTION_MAP=( ["resource_types"]="resourceTypes"
                      ["property_types"]="propertyTypes"
                      ["resources_and_run_data"]="resources_and_run_data"
-
                     )
 
 echo "Executing elasticsearch-configure.sh ......"
@@ -30,12 +20,6 @@ echo " value of ELASTIC_HOST: ${ELASTIC_HOST}"
 echo " value of ELASTIC_PORT: ${ELASTIC_PORT}"
 echo " value of INDEX_NAME: ${INDEX_NAME}"
 
-
-INDEX_NAME=${INDEX_NAME:-""}
-
-# convert input K8 friendly index name to actual index name
-# Eg: resourcetypes -> resource_types
-INDEX_NAME=${INDEX_NAME_MAP[$INDEX_NAME]}
 
 echo "setting mongo-connector for index ${INDEX_NAME}"
 
