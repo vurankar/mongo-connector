@@ -1,0 +1,206 @@
+// update a containerized version of a riffyn application deployment
+// This job takes one parameters, an override to the container tag.
+
+def RIFFYN_APP = "mongo-connector"
+
+// Everything below this line is a candidate for placing into a shared library
+//
+
+import net.sf.json.JSONArray;
+import net.sf.json.JSONObject;
+
+// The branch name corrisponds to the environment we're updating
+def RIFFYN_ENV = env.BRANCH_NAME
+
+def FULL_CLUSTERNAME = "${RIFFYN_ENV}.riffyn.com"
+
+
+def OVERRIDE = ''
+if (params.CONTAINER?.trim()) {
+   // CONTAINER parameter was provided, set an override 
+   OVERRIDE = " --set image.tag=${params.CONTAINER} "
+} else { 
+   // CONTAINER parameter is empty, no override
+   currentBuild.result = 'FAILURE'
+   return
+}
+
+if (params.INDEX_NAME?.trim()) {
+   // INDEX_NAME parameter was provided, set an override 
+   OVERRIDE = OVERRIDE + " --set image.tag=${params.INDEX_NAME} "
+} else { 
+   // INDEX_NAME parameter is empty, no override
+   currentBuild.result = 'FAILURE'
+   return
+}
+
+if (params.RESET_INDEX?.trim()) {
+   // INDEX_NAME parameter was provided, set an override 
+   OVERRIDE = OVERRIDE + " --set image.tag=${params.INDEX_NAME} "
+} else { 
+   // INDEX_NAME parameter is empty, no override
+   currentBuild.result = 'FAILURE'
+   return
+}
+
+properties([
+  disableConcurrentBuilds()
+]) 
+
+podTemplate(
+  label: "pod",
+  name: "jenkins-slave-deploy-${RIFFYN_APP}-${RIFFYN_ENV}",
+  containers: [
+    containerTemplate(name: 'helm', image: 'lachlanevenson/k8s-helm:v2.13.1', command: 'cat', ttyEnabled: true)
+  ]
+)
+
+{
+  node("pod") {
+    container('jnlp') {
+      stage('Clone repositories and read settings') {
+
+        properties([
+          parameters([
+            string(  
+              name: 'CONTAINER',
+              defaultValue: '', 
+              description: 'required',   
+              trim: true),
+
+            string(  
+              name: 'INDEX_NAME',
+              defaultValue: '', 
+              description: 'required',   
+              trim: true),  
+
+            booleanParam(
+              name: 'REINSTALL',
+              description: 'Use this to delete and reinstall the application.  This is useful if the application is stuck in an inconsistent state and helm is unable to deploy.  Using this will cause the load balancer to be deleted and recreated.  The new load balancer may take up to 5 minutes to appear in DNS.'),
+
+            booleanParam(
+              name: 'RESET_INDEX',
+              description: 'Reset index in Elasticsearch. This drops and repopulates the index in Elasticsearch')
+          ])
+        ])
+
+        dir('riffyn-environments') {
+          checkout([
+            $class: 'GitSCM',
+            branches: [[name: "*/${env.BRANCH_NAME}"]],
+            userRemoteConfigs: scm.userRemoteConfigs
+          ])
+        }
+
+        dir('devops') {
+          checkout([$class: 'GitSCM',
+            branches: [[name: '*/master']],
+            userRemoteConfigs: [[credentialsId: 'github', url: 'https://github.com/RiffynInc/devops.git']]
+          ])
+        }
+
+        // Read the jenkins_settings.json file from this branch of the riffyn-environments repo
+        // This will populate variables such as config.foo.bar
+        // def inputFile = readFile('riffyn-environments/jenkins_settings.json')
+        // def config = new groovy.json.JsonSlurperClassic().parseText(inputFile)
+        // println "pipeline config ==> ${config}"
+      }
+    }
+
+    container('helm') {
+      stage('initialize helm and perform sanity tests') {
+        withCredentials([file(credentialsId: "${FULL_CLUSTERNAME}-kubecfg-deployrobot", variable: 'KUBECONFIG')]) {
+          sh """
+            set +x
+            echo Environment: ${FULL_CLUSTERNAME} 
+
+            helm init --client-only 
+
+            # Perform all sanity tests
+            helm lint devops/charts/${RIFFYN_APP}
+
+            echo helm dry run:
+            echo helm upgrade ${RIFFYN_APP} devops/charts/${RIFFYN_APP} --debug --dry-run \
+               -f riffyn-environments/k8s/helm-${RIFFYN_APP}-values.yaml \
+               -f riffyn-environments/k8s/helm-vpc-values.yaml ${OVERRIDE}
+
+            helm upgrade ${RIFFYN_APP} devops/charts/${RIFFYN_APP} --debug --dry-run \
+               -f riffyn-environments/k8s/helm-${RIFFYN_APP}-values.yaml \
+               -f riffyn-environments/k8s/helm-vpc-values.yaml ${OVERRIDE}
+
+            # We should check if the container tag exists in the registry before proceeding.
+
+          """
+        }
+      }
+
+      if (params.REINSTALL) {
+        echo 'Reinstall box was checked, deleting and reinstalling '
+        stage('reinstall application') {
+          withCredentials([file(credentialsId: "${FULL_CLUSTERNAME}-kubecfg-deployrobot", variable: 'KUBECONFIG')]) {
+            sh """
+              set +x
+              echo helm delete ${RIFFYN_APP} --purge \
+               --description "${env.BUILD_URL}" 
+              helm delete ${RIFFYN_APP} --purge \
+               --description "${env.BUILD_URL}" 
+
+              echo helm install --name ${RIFFYN_APP} devops/charts/${RIFFYN_APP} --atomic \
+                 -f riffyn-environments/k8s/helm-${RIFFYN_APP}-values.yaml \
+                 -f riffyn-environments/k8s/helm-vpc-values.yaml ${OVERRIDE} \
+                 --description "${env.BUILD_URL}" 
+
+              helm install --name ${RIFFYN_APP} devops/charts/${RIFFYN_APP} --atomic \
+                 -f riffyn-environments/k8s/helm-${RIFFYN_APP}-values.yaml \
+                 -f riffyn-environments/k8s/helm-vpc-values.yaml ${OVERRIDE} \
+                 --description "${env.BUILD_URL}" 
+            """
+          }
+        }
+      } else { 
+         echo 'Reinstall box was not checked'
+      }
+
+
+      stage('update helm deployment') {
+        withCredentials([file(credentialsId: "${FULL_CLUSTERNAME}-kubecfg-deployrobot", variable: 'KUBECONFIG')]) {
+          sh """
+            set +x
+            echo updating Environment: ${FULL_CLUSTERNAME}    
+
+            echo helm upgrade ${RIFFYN_APP} devops/charts/${RIFFYN_APP} --atomic \
+               -f riffyn-environments/k8s/helm-${RIFFYN_APP}-values.yaml \
+               -f riffyn-environments/k8s/helm-vpc-values.yaml ${OVERRIDE} \
+               --description "${env.BUILD_URL}" 
+
+            helm upgrade ${RIFFYN_APP} devops/charts/${RIFFYN_APP} --atomic \
+               -f riffyn-environments/k8s/helm-${RIFFYN_APP}-values.yaml \
+               -f riffyn-environments/k8s/helm-vpc-values.yaml ${OVERRIDE} \
+               --description "${env.BUILD_URL}" 
+
+            echo Values deployed to ${RIFFYN_APP} in ${FULL_CLUSTERNAME} 
+            helm get values ${RIFFYN_APP}
+
+            # download the current values of the running helm installation
+            helm get values ${RIFFYN_APP} > values.yaml
+          """
+          archiveArtifacts 'values.yaml'
+        }
+      }
+
+
+
+      // see https://github.com/jenkinsci/slack-plugin
+      // stage('send notification') {
+      //   JSONArray attachments = new JSONArray();
+      //   JSONObject attachment = new JSONObject();
+
+      //   attachment.put('text',sprintf( '%s successfully updated', [${RIFFYN_APP}]));
+      //   attachment.put('fallback',sprintf( '%s successfully updated', [${RIFFYN_APP}]));
+      //   attachment.put('color','#ff0000');
+      //   attachments.add(attachment);
+      //   slackSend(color: '#00FF00', channel: '#env-${RIFFYN_ENV}', attachments: attachments.toString())
+      // }
+    }
+  }
+}

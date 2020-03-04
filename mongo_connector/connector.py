@@ -29,6 +29,9 @@ import sys
 import threading
 import time
 
+import prometheus_client
+from prometheus_client import start_http_server
+
 from pymongo import MongoClient
 
 from mongo_connector import config, constants, errors, util
@@ -1021,6 +1024,17 @@ def get_config_options():
                 if k not in kwargs:
                     kwargs[k] = dm['args'][k]
 
+            LOG.always('ELASTIC_HOST:')
+            LOG.always(os.environ.get('ELASTIC_HOST'))
+            LOG.always('ELASTIC_PORT:')
+            LOG.always(os.environ.get('ELASTIC_PORT'))
+            LOG.always('ELASTIC_USER:')
+            LOG.always(os.environ.get('ELASTIC_USER'))
+            LOG.always('ELASTIC_PASSWORD:')
+            LOG.always(os.environ.get('ELASTIC_PASSWORD'))
+            LOG.always('targetURL:')
+            LOG.always(dm['targetURL'])
+
             target_url = dm['targetURL']
             if target_url:
                 dm_instances.append(DocManager(target_url, **kwargs))
@@ -1354,6 +1368,32 @@ def main():
         return sig_handler
     signal.signal(signal.SIGTERM, signame_handler('SIGTERM'))
     signal.signal(signal.SIGINT, signame_handler('SIGINT'))
+
+    try:
+        # Start up the server to expose the metrics.
+        prometheus_port = os.environ.get('PROMETHEUS_PORT') or 8000
+        prometheus_port = int(prometheus_port)
+        start_http_server(prometheus_port)
+        LOG.always("called start server")
+        LOG.always(">>>>>>>>>> prometheus server port: '%d'", prometheus_port)
+    except:
+        LOG.always('??????????????? where is my server?')
+
+    LOG.always('******************** ENV VAR?')
+    LOG.always('PROMETHEUS_PORT:')
+    LOG.always(os.environ.get('PROMETHEUS_PORT'))
+    LOG.always('INDEX_NAME:')
+    LOG.always(os.environ.get('INDEX_NAME'))
+    LOG.always('RESET_INDEX:')
+    LOG.always(os.environ.get('RESET_INDEX'))
+    LOG.always('JOIN_INDEX:')
+    LOG.always(os.environ.get('JOIN_INDEX'))
+    LOG.always('JOIN_FIELD:')
+    LOG.always(os.environ.get('JOIN_FIELD'))
+    LOG.always('CHILD_FIELD_1:')
+    LOG.always(os.environ.get('CHILD_FIELD_1'))
+    LOG.always('CHILD_FIELD_2:')
+    LOG.always(os.environ.get('CHILD_FIELD_2'))
 
     connector.start()
 
