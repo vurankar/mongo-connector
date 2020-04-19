@@ -7,6 +7,7 @@ RESET_INDEX=${RESET_INDEX:-0}
 
 
 echo " value of RESET_INDEX: ${RESET_INDEX}"
+echo " value of ELASTIC_SSL_ENABLED: ${ELASTIC_SSL_ENABLED}"
 echo " value of ELASTIC_HOST: ${ELASTIC_HOST}"
 echo " value of ELASTIC_PORT: ${ELASTIC_PORT}"
 echo " value of ELASTIC_USER: ${ELASTIC_USER}"
@@ -15,6 +16,13 @@ echo " value of MONGO_HOSTS: ${MONGO_HOSTS}"
 echo " value of INDEX_NAME: ${INDEX_NAME}"
 
 echo "setting TARGET_URL for elasticsearch"
+# default to https unless ELASTIC_SSL_ENABLED is false
+if [ $ELASTIC_SSL_ENABLED == "false" ]; then
+    ELASTIC_PROTOCOL="http"
+else
+    ELASTIC_PROTOCOL="https"
+fi
+
 TARGET_URL="${ELASTIC_HOST}:${ELASTIC_PORT}"
 
 if [[ -z "${ELASTIC_USERNAME}" &&  -z "${ELASTIC_PASSWORD}" ]]; then
@@ -26,7 +34,7 @@ fi
 
 # check if the index exists. If the index is absent in ES, continue with RESET INDEX flow
 # is there a easier way to check if a index is present in ElasticSearch ?
-INDEX_CHECK_CURL_COMMAND="curl -k --write-out %{response_code} --silent --output /dev/null https://${TARGET_URL}/${INDEX_NAME}"
+INDEX_CHECK_CURL_COMMAND="curl -k --write-out %{response_code} --silent --output /dev/null ${ELASTIC_PROTOCOL}://${TARGET_URL}/${INDEX_NAME}"
 INDEX_CHECK=$($INDEX_CHECK_CURL_COMMAND)
 echo "Response code from curl request to check ${INDEX_NAME} = ${INDEX_CHECK}"
 
