@@ -16,6 +16,7 @@ declare -A INDEX_TO_COLLECTION_MAP=( ["resource_types"]="resourceTypes"
 
 echo "Executing elasticsearch-configure.sh ......"
 echo " value of INDEX_NAME: ${INDEX_NAME}"
+echo " value of ELASTIC_SSL_ENABLED: ${ELASTIC_SSL_ENABLED}"
 echo " value of ELASTIC_HOST: ${ELASTIC_HOST}"
 echo " value of ELASTIC_PORT: ${ELASTIC_PORT}"
 echo " value of INDEX_NAME: ${INDEX_NAME}"
@@ -73,15 +74,22 @@ else
     echo
 fi
 
+# default to https unless ELASTIC_SSL_ENABLED is false
+if [ $ELASTIC_SSL_ENABLED == "false" ]; then
+    ELASTIC_PROTOCOL="http"
+else
+    ELASTIC_PROTOCOL="https"
+fi
+
 ##
 ##  DELETE/RECREATE/RECONFIGURE INDEXES AND MAPPINGS
 ##
 echo "DELETING oplog.timestamp file  ${OPLOG_TIMESTAMP_LOCATION}/oplog.timestamp"
-rm ${OPLOG_TIMESTAMP_LOCATION}/oplog.timestamp
+rm -f ${OPLOG_TIMESTAMP_LOCATION}/oplog.timestamp
 echo
 
 echo "DELETING  ${INDEX_NAME} INDEX"
-curl -XDELETE -k "https://$ELASTIC_USER:$ELASTIC_PASSWORD@$ELASTIC_HOST:$ELASTIC_PORT/$INDEX_NAME" -H 'Content-Type: application/json'
+curl -XDELETE -k "$ELASTIC_PROTOCOL://$ELASTIC_USER:$ELASTIC_PASSWORD@$ELASTIC_HOST:$ELASTIC_PORT/$INDEX_NAME" -H 'Content-Type: application/json'
 echo
 
 
@@ -91,7 +99,7 @@ echo
 
 echo
 echo "SETTING UP ELASTICSEARCH INDEXES"
-while curl -XGET -k "https://$ELASTIC_USER:$ELASTIC_PASSWORD@$ELASTIC_HOST:$ELASTIC_PORT/$INDEX_NAME" | grep '"status" : 200'; do
+while curl -XGET -k "$ELASTIC_PROTOCOL://$ELASTIC_USER:$ELASTIC_PASSWORD@$ELASTIC_HOST:$ELASTIC_PORT/$INDEX_NAME" | grep '"status" : 200'; do
     sleep 1
     echo "Waiting for indiciess to be removed…"
 done
@@ -105,13 +113,13 @@ echo
 # curl -XPUT "$ELASTIC_HOST:$ELASTIC_PORT/mongodb_meta" -H 'Content-Type: application/json'
 # echo
 
-curl -XPUT -k "https://$ELASTIC_USER:$ELASTIC_PASSWORD@$ELASTIC_HOST:$ELASTIC_PORT/$INDEX_NAME/?format=yaml" -H 'Content-Type: application/json' -d @$CONFIG_DIR/settings.json
+curl -XPUT -k "$ELASTIC_PROTOCOL://$ELASTIC_USER:$ELASTIC_PASSWORD@$ELASTIC_HOST:$ELASTIC_PORT/$INDEX_NAME/?format=yaml" -H 'Content-Type: application/json' -d @$CONFIG_DIR/settings.json
 echo
 
 
 echo
 echo "ADDING ${INDEX_TO_COLLECTION_MAP[$INDEX_NAME]} DOC TYPE MAPPING"
-curl -XPUT -k "https://$ELASTIC_USER:$ELASTIC_PASSWORD@$ELASTIC_HOST:$ELASTIC_PORT/$INDEX_NAME/_mapping/${INDEX_TO_COLLECTION_MAP[$INDEX_NAME]}?format=yaml" -H 'Content-Type: application/json' -d @$CONFIG_DIR/mapping_$INDEX_NAME.json
+curl -XPUT -k "$ELASTIC_PROTOCOL://$ELASTIC_USER:$ELASTIC_PASSWORD@$ELASTIC_HOST:$ELASTIC_PORT/$INDEX_NAME/_mapping/${INDEX_TO_COLLECTION_MAP[$INDEX_NAME]}?format=yaml" -H 'Content-Type: application/json' -d @$CONFIG_DIR/mapping_$INDEX_NAME.json
 echo
 
 echo
