@@ -5,6 +5,8 @@ OPLOG_TIMESTAMP_LOCATION="/srv/riffyn/mongo-connector/oplogts/oplog.timestamp"
 RESET_INDEX=${RESET_INDEX:-0}
 #SKIP_INDEX_RESET  : 0: do not reset and 1: reset index
 
+# Ignore warnings 'Unverified HTTPS request'
+export PYTHONWARNINGS="ignore:Unverified HTTPS request"
 
 echo " value of RESET_INDEX: ${RESET_INDEX}"
 echo " value of ELASTIC_SSL_ENABLED: ${ELASTIC_SSL_ENABLED}"
@@ -69,7 +71,16 @@ echo "setting mongo-connector for index ${INDEX_NAME}"
 
 # $MONGO_HOSTS should be in format HOSTNAME:PORT
 # example mongodb01:27017,mongodb02:27017,mongodb03:27017
-mongo-connector --auto-commit-interval=0 $MONGO_SSL_ARGS -m $MONGO_HOSTS -c "config/connector_${INDEX_NAME}.json" --oplog-ts ${OPLOG_TIMESTAMP_LOCATION}  -t $TARGET_URL --stdout
+
+# Use the auto commit interval only if defined
+if [ -z "$AUTO_COMMIT_INTERVAL" ]
+then
+    echo "AUTO_COMMIT_INTERVAL is not defined, using value from connector's config."
+    mongo-connector $MONGO_SSL_ARGS -m $MONGO_HOSTS -c "config/connector_${INDEX_NAME}.json" --oplog-ts ${OPLOG_TIMESTAMP_LOCATION}  -t $TARGET_URL --stdout
+else
+    echo " value of AUTO_COMMIT_INTERVAL : ${AUTO_COMMIT_INTERVAL}"
+    mongo-connector --auto-commit-interval=${AUTO_COMMIT_INTERVAL} $MONGO_SSL_ARGS -m $MONGO_HOSTS -c "config/connector_${INDEX_NAME}.json" --oplog-ts ${OPLOG_TIMESTAMP_LOCATION}  -t $TARGET_URL --stdout
+fi
 #mongo-connector --auto-commit-interval=0 -m $MONGO_HOSTS -c config/connector_${INDEX_NAME}.json --oplog-ts ${OPLOG_TIMESTAMP_LOCATION}/oplog.timestamp -t $ELASTIC_USER:$ELASTIC_PASSWORD@$ELASTIC_HOST:$ELASTIC_PORT --stdout
 
 sleep 10
