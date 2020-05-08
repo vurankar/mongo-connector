@@ -958,6 +958,7 @@ def get_config_options():
 
         # validate doc managers and fill in default values
         for dm in option.value:
+
             if not isinstance(dm, dict):
                 raise errors.InvalidConfiguration(
                     "Elements of docManagers must be a dict.")
@@ -965,6 +966,8 @@ def get_config_options():
                 raise errors.InvalidConfiguration(
                     "Every element of docManagers"
                     " must contain 'docManager' property.")
+            LOG.always("Document Manager settings")
+            LOG.always(dm)
             if not dm.get('targetURL'):
                 dm['targetURL'] = None
             if not dm.get('uniqueKey'):
