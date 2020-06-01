@@ -11,7 +11,7 @@ OPLOG_TIMESTAMP_LOCATION="/srv/riffyn/mongo-connector/oplogts"
 
 declare -A INDEX_TO_COLLECTION_MAP=( ["resource_types"]="resourceTypes"
                      ["property_types"]="propertyTypes"
-                     ["resources_and_run_data"]="resources_and_run_data"
+                     ["resources"]="resources"
                     )
 
 echo "Executing elasticsearch-configure.sh ......"
