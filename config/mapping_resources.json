@@ -5,6 +5,10 @@
             "type": "text",
             "index": true
         },
+        "typeName": {
+            "type": "text",
+            "index": true
+        },
         "experimentId": {
             "type": "text",
             "index": true
