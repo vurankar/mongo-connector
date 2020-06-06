@@ -34,24 +34,7 @@
             }
         },
         "typeName": {
-            "type": "text",
-            "fields": {
-                "nostem": {
-                    "type": "text",
-                    "analyzer": "nonword",
-                    "index_options": "docs"
-                },
-                "ngram_resource": {
-                    "type": "text",
-                    "analyzer": "entity_name",
-                    "index_options": "docs"
-                },
-                "edge_ngram_resource": {
-                    "type": "text",
-                    "analyzer": "autocomplete1",
-                    "index_options": "docs"
-                }
-            }
+            "type": "text"
         },
         "label": {
             "type": "text",
