@@ -49,7 +49,7 @@
                 },
                 "entity_name": {
                     "type": "custom",
-                    "tokenizer": "whitespace",
+                    "tokenizer": "partial_match_tokenizer",
                     "filter": [
                         "my_ascii_folding",
                         "lowercase",
@@ -59,7 +59,12 @@
                 }
             },
             "tokenizer": {
-                "my_whitespace_tokenizer": {
+				"partial_match_tokenizer": {
+					"type": "ngram",
+					"min_gram": "3",
+					"max_gram": "30"
+				},
+				"my_whitespace_tokenizer": {
                     "type": "pattern",
                     "pattern": "[\\W,)(]+"
                 }
