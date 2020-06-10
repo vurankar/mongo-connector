@@ -48,6 +48,15 @@ else
   echo "Index ${INDEX_NAME} not found on ElasticSearch. Continue with RESET INDEX flow"
 fi
 
+# If the oplog.timestamp file does not exists, trigger the reset index flow
+if [ ! -f ${OPLOG_TIMESTAMP_LOCATION} ]; then
+    RESET_INDEX="1"
+    echo "${OPLOG_TIMESTAMP_LOCATION} does not exist. Continue with RESET INDEX flow"
+else
+    echo "oplog timestamp exists"
+    cat "${OPLOG_TIMESTAMP_LOCATION}"
+fi
+
 if [ "$RESET_INDEX" == "1" ]
 then
     echo "Resetting elasticsearch index ${INDEX_NAME}...."
